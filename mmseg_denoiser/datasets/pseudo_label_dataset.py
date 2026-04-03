@@ -55,6 +55,9 @@ class PseudoLabelDenoiseDataset(CustomDataset):
         ignore_index (int): Ignore index for loss computation. Default: 255.
     """
 
+    CLASSES = ('background', 'building')
+    PALETTE = [[0, 0, 0], [255, 0, 0]]
+
     def __init__(self,
                  pipeline: List[dict],
                  img_dir: str,
@@ -135,6 +138,7 @@ class PseudoLabelDenoiseDataset(CustomDataset):
     def prepare_test_img(self, idx: int) -> Dict:
         """Get testing data after pipeline."""
         img_info = self.img_infos[idx]
+        ann_info = self.get_ann_info(idx)
 
         pseudo_label_filename = img_info['filename'].replace(
             self.img_suffix, self.pseudo_label_suffix)
@@ -142,8 +146,10 @@ class PseudoLabelDenoiseDataset(CustomDataset):
 
         results = dict(
             img_info=img_info,
+            ann_info=ann_info,
             seg_fields=[],
             img_prefix=self.img_dir,
+            seg_prefix=self.ann_dir,
             pseudo_label_path=pseudo_label_path,
             num_classes=self.num_classes,
         )

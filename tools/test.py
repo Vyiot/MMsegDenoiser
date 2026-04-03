@@ -14,13 +14,19 @@ Usage:
         --show-dir work_dirs/predictions/
 """
 
-import argparse
 import os
+import warnings
+os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
+warnings.filterwarnings("ignore")
+
+import argparse
 import os.path as osp
 import sys
 
+import cv2
 import mmcv
 import torch
+
 from mmcv.parallel import MMDataParallel
 from mmcv.runner import load_checkpoint
 from mmcv.utils import Config, DictAction

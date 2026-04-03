@@ -1,9 +1,9 @@
 # DeepLabV3+ with ResNet-101 backbone for pseudo-label denoising.
 # Input channels = 3 (RGB) + num_classes (one-hot pseudo-label).
 
-num_classes = 7
+num_classes = 2
 
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+norm_cfg = dict(type='BN', requires_grad=True)
 model = dict(
     type='DenoiserSegmentor',
     num_classes=num_classes,

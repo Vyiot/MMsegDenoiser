@@ -129,10 +129,10 @@ class UNetDecodeHead(BaseDecodeHead):
             f'UNetDecodeHead requires exactly 4 encoder scales, got {len(in_channels)}'
 
         super().__init__(
-            in_channels=in_channels[0],
+            in_channels=in_channels,
             channels=channels,
             dropout_ratio=dropout_ratio,
-            input_transform=None,
+            input_transform='multiple_select',
             in_index=[0, 1, 2, 3],
             **kwargs)
 
@@ -168,6 +168,7 @@ class UNetDecodeHead(BaseDecodeHead):
         Returns:
             Tensor: Segmentation logits (B, num_classes, H/4, W/4).
         """
+        inputs = self._transform_inputs(inputs)
         f1, f2, f3, f4 = inputs[0], inputs[1], inputs[2], inputs[3]
 
         # Bottleneck on deepest features

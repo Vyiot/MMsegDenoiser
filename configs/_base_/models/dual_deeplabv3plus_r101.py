@@ -1,7 +1,7 @@
 # Dual-Encoder DeepLabV3+ ResNet-101 (late fusion) for pseudo-label denoising.
 
-num_classes = 7
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+num_classes = 2
+norm_cfg = dict(type='BN', requires_grad=True)
 
 model = dict(
     type='DualEncoderSegmentor',

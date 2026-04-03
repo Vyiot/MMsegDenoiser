@@ -16,6 +16,9 @@ import argparse
 import copy
 import os
 import os.path as osp
+
+# Suppress OpenCV GeoTIFF metadata warnings (harmless unknown tag warnings)
+os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
 import sys
 import time
 

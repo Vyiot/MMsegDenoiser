@@ -5,7 +5,7 @@
 # This provides stronger spatial detail preservation for boundary
 # correction in pseudo-label denoising.
 
-num_classes = 7
+num_classes = 2
 
 model = dict(
     type='DenoiserSegmentor',
@@ -34,7 +34,7 @@ model = dict(
         bottleneck_channels=512,
         dropout_ratio=0.1,
         num_classes=num_classes,
-        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        norm_cfg=dict(type='BN', requires_grad=True),
         align_corners=False,
         loss_decode=dict(
             type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),

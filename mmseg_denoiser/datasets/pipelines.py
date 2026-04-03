@@ -26,7 +26,7 @@ class LoadPseudoLabel:
             Default: 255.
     """
 
-    def __init__(self, to_onehot: bool = True, ignore_index: int = 255):
+    def __init__(self, to_onehot: bool = False, ignore_index: int = 255):
         self.to_onehot = to_onehot
         self.ignore_index = ignore_index
 
@@ -62,6 +62,46 @@ class LoadPseudoLabel:
         return (f'{self.__class__.__name__}('
                 f'to_onehot={self.to_onehot}, '
                 f'ignore_index={self.ignore_index})')
+
+
+
+@PIPELINES.register_module()
+class PseudoLabelToOneHot:
+    """Convert pseudo-label class index map to one-hot encoding.
+
+    This should be placed in the pipeline after all spatial transformations
+    (Resize, RandomCrop, etc.) to ensure the one-hot representation
+    matches the transformed image dimensions.
+
+    Args:
+        ignore_index (int): Index to ignore during one-hot encoding.
+            Default: 255.
+    """
+
+    def __init__(self, ignore_index: int = 255):
+        self.ignore_index = ignore_index
+
+    def __call__(self, results: dict) -> dict:
+        if 'pseudo_label' not in results:
+            return results
+
+        pseudo_label = results['pseudo_label']
+        num_classes = results['num_classes']
+        h, w = pseudo_label.shape
+
+        onehot = np.zeros((num_classes, h, w), dtype=np.float32)
+        valid_mask = pseudo_label != self.ignore_index
+        valid_labels = pseudo_label[valid_mask]
+        rows, cols = np.where(valid_mask)
+
+        # Handle indexing for one-hot
+        onehot[valid_labels, rows, cols] = 1.0
+
+        results['pseudo_label_onehot'] = onehot
+        return results
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}(ignore_index={self.ignore_index})'
 
 
 @PIPELINES.register_module()

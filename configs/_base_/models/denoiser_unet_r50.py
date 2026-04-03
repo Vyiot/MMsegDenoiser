@@ -7,14 +7,14 @@
 #   F3(1/16)──skip──┤
 #   F4(1/32)──bottleneck──Up+Cat+Conv──Up+Cat+Conv──Up+Cat+Conv──Output(1/4)
 
-num_classes = 7
+num_classes = 2
 
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+norm_cfg = dict(type='BN', requires_grad=True)
 model = dict(
     type='DenoiserSegmentor',
     num_classes=num_classes,
     adapt_input_conv=True,
-    pretrained='open-mmlab://resnet50_v1c',
+    pretrained=None,
     backbone=dict(
         type='ResNetV1c',
         depth=50,
@@ -25,7 +25,8 @@ model = dict(
         strides=(1, 2, 2, 2),
         norm_cfg=norm_cfg,
         norm_eval=False,
-        style='pytorch'),
+        style='pytorch',
+        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://resnet50_v1c')),
     decode_head=dict(
         type='UNetDecodeHead',
         in_channels=[256, 512, 1024, 2048],  # ResNet-50 feature dims

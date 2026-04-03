@@ -7,3 +7,4 @@ _base_ = [
 
 optimizer = dict(lr=1e-4, weight_decay=0.0005)
 data = dict(samples_per_gpu=4, workers_per_gpu=4)
+device = 'cuda'

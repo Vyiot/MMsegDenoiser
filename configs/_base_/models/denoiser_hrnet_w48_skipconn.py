@@ -9,9 +9,9 @@
 # concatenates them — losing the hierarchical structure. UNetDecodeHead
 # respects the natural coarse-to-fine hierarchy.
 
-num_classes = 7
+num_classes = 2
 
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+norm_cfg = dict(type='BN', requires_grad=True)
 model = dict(
     type='DenoiserSegmentor',
     num_classes=num_classes,

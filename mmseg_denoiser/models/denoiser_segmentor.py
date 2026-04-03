@@ -236,17 +236,33 @@ class DenoiserSegmentor(BaseSegmentor):
 
     def forward_test(self, imgs, img_metas, **kwargs):
         """Forward pass for testing (single-scale)."""
-        return self.simple_test(imgs[0], img_metas[0], **kwargs)
+        img = imgs[0]
+        img_meta = img_metas[0]
+        if not isinstance(img_meta, list):
+            img_meta = [img_meta]
+        return self.simple_test(img, img_meta, **kwargs)
 
-    def simple_test(self, img, img_meta, rescale=True):
+    def simple_test(self, img, img_meta, rescale=True, **kwargs):
         """Simple test with single scale."""
+        if img.dim() == 3:
+            img = img.unsqueeze(0)
         seg_logit = self.encode_decode(img, img_meta)
+        if rescale:
+            seg_logit = resize(
+                input=seg_logit,
+                size=img_meta[0]['ori_shape'][:2],
+                mode='bilinear',
+                align_corners=self.align_corners,
+                warning=False)
         seg_pred = seg_logit.argmax(dim=1)
         seg_pred = seg_pred.cpu().numpy()
         # Unpack batch
         seg_pred = list(seg_pred)
         return seg_pred
 
-    def aug_test(self, imgs, img_metas, rescale=True):
+    def aug_test(self, imgs, img_metas, rescale=True, **kwargs):
         """Multi-scale augmented test (placeholder)."""
-        return self.simple_test(imgs[0], img_metas[0], rescale)
+        img = imgs[0]
+        if img.dim() == 3:
+            img = img.unsqueeze(0)
+        return self.simple_test(img, img_metas[0], rescale, **kwargs)
