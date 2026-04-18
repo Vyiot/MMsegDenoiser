@@ -30,9 +30,6 @@ checkpoints/
 *.ckpt
 *.pt
 
-# Logs
-*.log
-
 # OS
 .DS_Store
 Thumbs.db

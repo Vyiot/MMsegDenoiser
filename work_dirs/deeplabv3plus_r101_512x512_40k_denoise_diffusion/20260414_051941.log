@@ -1,0 +1,1532 @@
+2026-04-14 05:19:41,487 - mmseg - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.20 (default, Oct  3 2024, 15:24:27) [GCC 11.2.0]
+CUDA available: True
+GPU 0: NVIDIA L40S
+CUDA_HOME: /usr
+NVCC: Cuda compilation tools, release 12.0, V12.0.140
+GCC: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+PyTorch: 1.13.1+cu117
+PyTorch compiling details: PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.6.0 (Git Hash 52b5f107dd9cf10910aaa19cb47f3abf9b349815)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.7
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86
+  - CuDNN 8.5
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.7, CUDNN_VERSION=8.5.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -fabi-version=11 -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wunused-local-typedefs -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.13.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+TorchVision: 0.14.1+cu117
+OpenCV: 4.13.0
+MMCV: 1.7.2
+MMCV Compiler: GCC 9.3
+MMCV CUDA Compiler: 11.7
+MMSegmentation: 0.30.0+bd8ebc5
+------------------------------------------------------------
+
+2026-04-14 05:19:41,896 - mmseg - INFO - Config:
+num_classes = 2
+norm_cfg = dict(type='BN', requires_grad=True)
+model = dict(
+    type='DenoiserSegmentor',
+    num_classes=2,
+    adapt_input_conv=True,
+    pretrained='open-mmlab://resnet101_v1c',
+    backbone=dict(
+        type='ResNetV1c',
+        depth=101,
+        in_channels=3,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        dilations=(1, 1, 2, 4),
+        strides=(1, 2, 1, 1),
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
+        style='pytorch',
+        contract_dilation=True),
+    decode_head=dict(
+        type='UNetDecodeHead',
+        in_channels=[256, 512, 1024, 2048],
+        channels=256,
+        bottleneck_channels=1024,
+        dropout_ratio=0.1,
+        num_classes=2,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        align_corners=False,
+        loss_decode=dict(
+            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
+        use_time_embd=True,
+        num_timesteps=6),
+    auxiliary_head=dict(
+        type='FCNHead',
+        in_channels=1024,
+        in_index=2,
+        channels=256,
+        num_convs=1,
+        concat_input=False,
+        dropout_ratio=0.1,
+        num_classes=2,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        align_corners=False,
+        loss_decode=dict(
+            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+    train_cfg=dict(),
+    test_cfg=dict(mode='whole'),
+    diffusion_cfg=dict(
+        betas=dict(type='linear', start=0.8, stop=0, num_timesteps=6)))
+dataset_type = 'PseudoLabelDenoiseDataset'
+data_root = '/home/ubuntu/vy/Denoiser/OEM_v2_Building'
+img_suffix = ''
+seg_map_suffix = ''
+pseudo_label_suffix = ''
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+crop_size = (512, 512)
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+    dict(type='RandomCrop', crop_size=(512, 512), cat_max_ratio=0.75),
+    dict(type='RandomFlip', prob=0.5),
+    dict(
+        type='Normalize',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        to_rgb=True),
+    dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+    dict(type='PseudoLabelToOneHot', ignore_index=255),
+    dict(type='FormatDenoiseBundle'),
+    dict(
+        type='Collect',
+        keys=['img', 'gt_semantic_seg', 'timesteps'],
+        meta_keys=[
+            'img_info', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor',
+            'flip', 'flip_direction', 'img_norm_cfg', 'num_classes'
+        ])
+]
+val_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+    dict(
+        type='Normalize',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        to_rgb=True),
+    dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+    dict(type='PseudoLabelToOneHot', ignore_index=255),
+    dict(type='FormatDenoiseBundle'),
+    dict(
+        type='Collect',
+        keys=['img', 'gt_semantic_seg'],
+        meta_keys=[
+            'img_info', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor',
+            'img_norm_cfg', 'num_classes'
+        ])
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+    dict(
+        type='Normalize',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        to_rgb=True),
+    dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+    dict(type='PseudoLabelToOneHot', ignore_index=255),
+    dict(type='FormatDenoiseBundle'),
+    dict(
+        type='Collect',
+        keys=['img'],
+        meta_keys=[
+            'img_info', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor',
+            'img_norm_cfg', 'num_classes'
+        ])
+]
+data = dict(
+    samples_per_gpu=16,
+    workers_per_gpu=8,
+    train=dict(
+        type='PseudoLabelDenoiseDataset',
+        data_root='/home/ubuntu/vy/Denoiser/OEM_v2_Building',
+        img_dir='images',
+        ann_dir='labels',
+        pseudo_label_dir='pseudolabels',
+        reduce_zero_label=False,
+        split='train.txt',
+        num_classes=2,
+        img_suffix='',
+        seg_map_suffix='',
+        pseudo_label_suffix='',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations', reduce_zero_label=False),
+            dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+            dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+            dict(type='RandomCrop', crop_size=(512, 512), cat_max_ratio=0.75),
+            dict(type='RandomFlip', prob=0.5),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+            dict(type='PseudoLabelToOneHot', ignore_index=255),
+            dict(type='FormatDenoiseBundle'),
+            dict(
+                type='Collect',
+                keys=['img', 'gt_semantic_seg', 'timesteps'],
+                meta_keys=[
+                    'img_info', 'ori_shape', 'img_shape', 'pad_shape',
+                    'scale_factor', 'flip', 'flip_direction', 'img_norm_cfg',
+                    'num_classes'
+                ])
+        ],
+        use_all_t=True),
+    val=dict(
+        type='PseudoLabelDenoiseDataset',
+        data_root='/home/ubuntu/vy/Denoiser/OEM_v2_Building',
+        img_dir='images',
+        ann_dir='labels',
+        pseudo_label_dir='pseudolabels',
+        reduce_zero_label=False,
+        split='val.txt',
+        num_classes=2,
+        img_suffix='',
+        seg_map_suffix='',
+        pseudo_label_suffix='',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations', reduce_zero_label=False),
+            dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+            dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+            dict(type='PseudoLabelToOneHot', ignore_index=255),
+            dict(type='FormatDenoiseBundle'),
+            dict(
+                type='Collect',
+                keys=['img', 'gt_semantic_seg'],
+                meta_keys=[
+                    'img_info', 'ori_shape', 'img_shape', 'pad_shape',
+                    'scale_factor', 'img_norm_cfg', 'num_classes'
+                ])
+        ]),
+    test=dict(
+        type='PseudoLabelDenoiseDataset',
+        data_root='/home/ubuntu/vy/Denoiser/OEM_v2_Building',
+        img_dir='images',
+        ann_dir='labels',
+        pseudo_label_dir='pseudolabels',
+        reduce_zero_label=False,
+        split='test.txt',
+        num_classes=2,
+        img_suffix='',
+        seg_map_suffix='',
+        pseudo_label_suffix='',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadPseudoLabel', to_onehot=False, ignore_index=255),
+            dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
+            dict(type='PseudoLabelToOneHot', ignore_index=255),
+            dict(type='FormatDenoiseBundle'),
+            dict(
+                type='Collect',
+                keys=['img'],
+                meta_keys=[
+                    'img_info', 'ori_shape', 'img_shape', 'pad_shape',
+                    'scale_factor', 'img_norm_cfg', 'num_classes'
+                ])
+        ]))
+log_config = dict(
+    interval=50, hooks=[dict(type='TextLoggerHook', by_epoch=False)])
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+cudnn_benchmark = True
+optimizer = dict(
+    type='AdamW', lr=0.0001, betas=(0.9, 0.999), weight_decay=0.0005)
+optimizer_config = dict()
+lr_config = dict(
+    policy='poly',
+    warmup='linear',
+    warmup_iters=1500,
+    warmup_ratio=1e-06,
+    power=1.0,
+    min_lr=0.0,
+    by_epoch=False)
+runner = dict(type='IterBasedRunner', max_iters=26000)
+checkpoint_config = dict(by_epoch=False, interval=-1)
+evaluation = dict(interval=4000, metric='mIoU', pre_eval=True)
+total_iters = 26000
+diffusion_eval = dict(
+    interval=1300,
+    label_dir='/home/ubuntu/vy/Denoiser/OEM_v2_Building/labels',
+    pseudo_dir='/home/ubuntu/vy/Denoiser/OEM_v2_Building/pseudolabels')
+device = 'cuda'
+work_dir = './work_dirs/deeplabv3plus_r101_512x512_40k_denoise_diffusion'
+gpu_ids = range(0, 1)
+
+2026-04-14 05:19:41,896 - mmseg - INFO - Set random seed to 42, deterministic: False
+2026-04-14 05:19:42,862 - mmseg - INFO - DenoiserSegmentor(
+  (backbone): ResNetV1c(
+    (stem): Sequential(
+      (0): Conv2d(5, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+      (1): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (4): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU(inplace=True)
+      (6): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (7): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (8): ReLU(inplace=True)
+    )
+    (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+    (layer1): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer2): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (3): Bottleneck(
+        (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer3): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(512, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (3): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (4): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (5): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (6): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (7): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (8): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (9): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (10): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (11): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (12): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (13): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (14): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (15): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (16): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (17): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (18): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (19): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (20): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (21): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (22): Bottleneck(
+        (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+    (layer4): ResLayer(
+      (0): Bottleneck(
+        (conv1): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2), bias=False)
+        (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (downsample): Sequential(
+          (0): Conv2d(1024, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (1): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (1): Bottleneck(
+        (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4), bias=False)
+        (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+      (2): Bottleneck(
+        (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4), bias=False)
+        (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+      )
+    )
+  )
+  init_cfg={'type': 'Pretrained', 'checkpoint': 'open-mmlab://resnet101_v1c'}
+  (decode_head): UNetDecodeHead(
+    input_transform=multiple_select, ignore_index=255, align_corners=False
+    (loss_decode): CrossEntropyLoss(avg_non_ignore=False)
+    (conv_seg): Conv2d(256, 2, kernel_size=(1, 1), stride=(1, 1))
+    (dropout): Dropout2d(p=0.1, inplace=False)
+    (bottleneck): Sequential(
+      (0): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(2048, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (1): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+    )
+    (up3): UpBlock(
+      (conv1): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(2048, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (conv2): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (dropout): Dropout2d(p=0.1, inplace=False)
+    )
+    (up2): UpBlock(
+      (conv1): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(1536, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (conv2): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (dropout): Dropout2d(p=0.1, inplace=False)
+    )
+    (up1): UpBlock(
+      (conv1): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(768, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (conv2): ConvBnReLU(
+        (block): Sequential(
+          (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+        )
+      )
+      (dropout): Dropout2d(p=0.1, inplace=False)
+    )
+    (time_embed): Embedding(6, 1024)
+    (time_proj_bneck): Sequential(
+      (0): Linear(in_features=1024, out_features=1024, bias=True)
+      (1): SiLU()
+    )
+    (time_proj_up3): Sequential(
+      (0): Linear(in_features=1024, out_features=1024, bias=True)
+      (1): SiLU()
+    )
+    (time_proj_up2): Sequential(
+      (0): Linear(in_features=1024, out_features=512, bias=True)
+      (1): SiLU()
+    )
+    (time_proj_up1): Sequential(
+      (0): Linear(in_features=1024, out_features=256, bias=True)
+      (1): SiLU()
+    )
+  )
+  init_cfg={'type': 'Normal', 'std': 0.01, 'override': {'name': 'conv_seg'}}
+  (auxiliary_head): FCNHead(
+    input_transform=None, ignore_index=255, align_corners=False
+    (loss_decode): CrossEntropyLoss(avg_non_ignore=False)
+    (conv_seg): Conv2d(256, 2, kernel_size=(1, 1), stride=(1, 1))
+    (dropout): Dropout2d(p=0.1, inplace=False)
+    (convs): Sequential(
+      (0): ConvModule(
+        (conv): Conv2d(1024, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (activate): ReLU(inplace=True)
+      )
+    )
+  )
+  init_cfg={'type': 'Normal', 'std': 0.01, 'override': {'name': 'conv_seg'}}
+)
+2026-04-14 05:19:42,868 - mmseg - INFO - Loaded 1721 images
+2026-04-14 05:19:44,419 - mmseg - INFO - Loaded 218 images
+2026-04-14 05:19:44,420 - mmseg - INFO - DiffusionEvalHook registered (interval=1300, priority=LOW)
+2026-04-14 05:19:44,420 - mmseg - INFO - Start running, host: ubuntu@ip-172-31-22-110, work_dir: /home/ubuntu/vy/Denoiser/MMsegDenoiser/work_dirs/deeplabv3plus_r101_512x512_40k_denoise_diffusion
+2026-04-14 05:19:44,420 - mmseg - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) OptimizerHook                      
+(NORMAL      ) CheckpointHook                     
+(LOW         ) IterTimerHook                      
+(LOW         ) DiffusionEvalHook                  
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2026-04-14 05:19:44,420 - mmseg - INFO - workflow: [('train', 1)], max: 26000 iters
+2026-04-14 05:19:44,420 - mmseg - INFO - Checkpoints will be saved to /home/ubuntu/vy/Denoiser/MMsegDenoiser/work_dirs/deeplabv3plus_r101_512x512_40k_denoise_diffusion by HardDiskBackend.
+2026-04-14 05:20:51,818 - mmseg - INFO - Iter [50/26000]	lr: 3.261e-06, eta: 9:40:51, time: 1.343, data_time: 0.080, memory: 38765, loss_ce: 0.6419, acc_seg: 77.6213, aux.loss_ce: 0.2742, aux.acc_seg: 56.4053, loss: 0.9160
+2026-04-14 05:21:51,812 - mmseg - INFO - Iter [100/26000]	lr: 6.575e-06, eta: 9:08:50, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.5267, acc_seg: 86.3262, aux.loss_ce: 0.2596, aux.acc_seg: 74.9761, loss: 0.7863
+2026-04-14 05:22:51,834 - mmseg - INFO - Iter [150/26000]	lr: 9.876e-06, eta: 8:57:35, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.4261, acc_seg: 90.9767, aux.loss_ce: 0.2269, aux.acc_seg: 84.3399, loss: 0.6530
+2026-04-14 05:23:51,938 - mmseg - INFO - Iter [200/26000]	lr: 1.317e-05, eta: 8:51:37, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.3745, acc_seg: 92.3831, aux.loss_ce: 0.1916, aux.acc_seg: 86.5699, loss: 0.5661
+2026-04-14 05:24:51,541 - mmseg - INFO - Iter [250/26000]	lr: 1.644e-05, eta: 8:46:47, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.3381, acc_seg: 93.1551, aux.loss_ce: 0.1693, aux.acc_seg: 89.0106, loss: 0.5073
+2026-04-14 05:25:51,721 - mmseg - INFO - Iter [300/26000]	lr: 1.970e-05, eta: 8:44:04, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.3037, acc_seg: 94.1528, aux.loss_ce: 0.1504, aux.acc_seg: 91.1394, loss: 0.4541
+2026-04-14 05:26:50,839 - mmseg - INFO - Iter [350/26000]	lr: 2.295e-05, eta: 8:40:32, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.2766, acc_seg: 94.4556, aux.loss_ce: 0.1362, aux.acc_seg: 92.1305, loss: 0.4128
+2026-04-14 05:27:49,866 - mmseg - INFO - Iter [400/26000]	lr: 2.619e-05, eta: 8:37:32, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.2480, acc_seg: 94.7534, aux.loss_ce: 0.1215, aux.acc_seg: 92.7688, loss: 0.3694
+2026-04-14 05:28:49,205 - mmseg - INFO - Iter [450/26000]	lr: 2.942e-05, eta: 8:35:17, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.2241, acc_seg: 95.3628, aux.loss_ce: 0.1085, aux.acc_seg: 93.6064, loss: 0.3326
+2026-04-14 05:29:49,517 - mmseg - INFO - Iter [500/26000]	lr: 3.263e-05, eta: 8:34:07, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.2017, acc_seg: 95.5173, aux.loss_ce: 0.0962, aux.acc_seg: 93.9950, loss: 0.2978
+2026-04-14 05:30:48,766 - mmseg - INFO - Iter [550/26000]	lr: 3.583e-05, eta: 8:32:09, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.1875, acc_seg: 95.4981, aux.loss_ce: 0.0881, aux.acc_seg: 94.1922, loss: 0.2757
+2026-04-14 05:31:47,754 - mmseg - INFO - Iter [600/26000]	lr: 3.901e-05, eta: 8:30:10, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.1727, acc_seg: 95.6425, aux.loss_ce: 0.0809, aux.acc_seg: 94.3026, loss: 0.2537
+2026-04-14 05:32:46,909 - mmseg - INFO - Iter [650/26000]	lr: 4.219e-05, eta: 8:28:27, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.1598, acc_seg: 95.6104, aux.loss_ce: 0.0758, aux.acc_seg: 94.2622, loss: 0.2357
+2026-04-14 05:33:46,766 - mmseg - INFO - Iter [700/26000]	lr: 4.535e-05, eta: 8:27:15, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.1453, acc_seg: 96.0524, aux.loss_ce: 0.0685, aux.acc_seg: 94.8770, loss: 0.2138
+2026-04-14 05:34:46,430 - mmseg - INFO - Iter [750/26000]	lr: 4.849e-05, eta: 8:25:59, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.1410, acc_seg: 95.8408, aux.loss_ce: 0.0661, aux.acc_seg: 94.7475, loss: 0.2071
+2026-04-14 05:35:45,746 - mmseg - INFO - Iter [800/26000]	lr: 5.163e-05, eta: 8:24:33, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.1254, acc_seg: 96.4678, aux.loss_ce: 0.0586, aux.acc_seg: 95.4370, loss: 0.1840
+2026-04-14 05:36:45,980 - mmseg - INFO - Iter [850/26000]	lr: 5.475e-05, eta: 8:23:38, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.1235, acc_seg: 96.2058, aux.loss_ce: 0.0583, aux.acc_seg: 95.1212, loss: 0.1818
+2026-04-14 05:37:45,341 - mmseg - INFO - Iter [900/26000]	lr: 5.786e-05, eta: 8:22:18, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.1112, acc_seg: 96.7270, aux.loss_ce: 0.0524, aux.acc_seg: 95.7701, loss: 0.1635
+2026-04-14 05:38:44,185 - mmseg - INFO - Iter [950/26000]	lr: 6.096e-05, eta: 8:20:47, time: 1.177, data_time: 0.002, memory: 38765, loss_ce: 0.1090, acc_seg: 96.5557, aux.loss_ce: 0.0523, aux.acc_seg: 95.5022, loss: 0.1614
+2026-04-14 05:39:43,144 - mmseg - INFO - Iter [1000/26000]	lr: 6.404e-05, eta: 8:19:21, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.1020, acc_seg: 96.7711, aux.loss_ce: 0.0489, aux.acc_seg: 95.8300, loss: 0.1509
+2026-04-14 05:40:42,307 - mmseg - INFO - Iter [1050/26000]	lr: 6.711e-05, eta: 8:18:03, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.1023, acc_seg: 96.5738, aux.loss_ce: 0.0492, aux.acc_seg: 95.6027, loss: 0.1515
+2026-04-14 05:41:42,526 - mmseg - INFO - Iter [1100/26000]	lr: 7.017e-05, eta: 8:17:11, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0982, acc_seg: 96.7259, aux.loss_ce: 0.0469, aux.acc_seg: 95.7982, loss: 0.1451
+2026-04-14 05:42:41,408 - mmseg - INFO - Iter [1150/26000]	lr: 7.321e-05, eta: 8:15:49, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0933, acc_seg: 96.7996, aux.loss_ce: 0.0454, aux.acc_seg: 95.8651, loss: 0.1387
+2026-04-14 05:43:40,084 - mmseg - INFO - Iter [1200/26000]	lr: 7.625e-05, eta: 8:14:25, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0905, acc_seg: 96.9834, aux.loss_ce: 0.0434, aux.acc_seg: 96.0853, loss: 0.1339
+2026-04-14 05:44:38,835 - mmseg - INFO - Iter [1250/26000]	lr: 7.927e-05, eta: 8:13:04, time: 1.175, data_time: 0.002, memory: 38765, loss_ce: 0.0871, acc_seg: 96.9555, aux.loss_ce: 0.0428, aux.acc_seg: 96.0237, loss: 0.1299
+2026-04-14 05:45:42,848 - mmseg - INFO - 
+--- Dual evaluation at iter 1300 ---
+2026-04-14 05:46:47,916 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         92.80%       92.46%       92.68%
+building           68.84%       67.10%       69.14%
+---------------------------------------------------
+mIoU               80.82%       79.78%       80.91%
+---------------------------------------------------
+2026-04-14 05:46:47,916 - mmseg - INFO - New best mIoU_single: 80.82% at iter 1300. Saving checkpoint...
+2026-04-14 05:46:50,068 - mmseg - INFO - Iter [1300/26000]	lr: 8.227e-05, eta: 8:13:25, time: 1.280, data_time: 0.101, memory: 38765, val/mIoU_single: 0.8082, val/mIoU_iter: 0.7978, val/mIoU_pseudo: 0.8091, loss_ce: 0.0888, acc_seg: 96.8121, aux.loss_ce: 0.0434, aux.acc_seg: 95.9325, loss: 0.1322
+2026-04-14 05:47:50,098 - mmseg - INFO - Iter [1350/26000]	lr: 8.527e-05, eta: 8:32:54, time: 2.545, data_time: 1.346, memory: 38765, loss_ce: 0.0806, acc_seg: 97.1554, aux.loss_ce: 0.0404, aux.acc_seg: 96.1962, loss: 0.1209
+2026-04-14 05:48:49,246 - mmseg - INFO - Iter [1400/26000]	lr: 8.825e-05, eta: 8:30:54, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0839, acc_seg: 97.0225, aux.loss_ce: 0.0410, aux.acc_seg: 96.1016, loss: 0.1249
+2026-04-14 05:49:48,656 - mmseg - INFO - Iter [1450/26000]	lr: 9.122e-05, eta: 8:29:03, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0759, acc_seg: 97.2965, aux.loss_ce: 0.0382, aux.acc_seg: 96.3513, loss: 0.1141
+2026-04-14 05:50:48,771 - mmseg - INFO - Iter [1500/26000]	lr: 9.417e-05, eta: 8:27:26, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0786, acc_seg: 97.1654, aux.loss_ce: 0.0395, aux.acc_seg: 96.2275, loss: 0.1181
+2026-04-14 05:51:47,704 - mmseg - INFO - Iter [1550/26000]	lr: 9.404e-05, eta: 8:25:34, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0779, acc_seg: 97.1792, aux.loss_ce: 0.0396, aux.acc_seg: 96.2178, loss: 0.1175
+2026-04-14 05:52:46,653 - mmseg - INFO - Iter [1600/26000]	lr: 9.385e-05, eta: 8:23:45, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0717, acc_seg: 97.3604, aux.loss_ce: 0.0366, aux.acc_seg: 96.4431, loss: 0.1083
+2026-04-14 05:53:45,765 - mmseg - INFO - Iter [1650/26000]	lr: 9.366e-05, eta: 8:22:01, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0768, acc_seg: 97.1171, aux.loss_ce: 0.0396, aux.acc_seg: 96.0826, loss: 0.1164
+2026-04-14 05:54:45,785 - mmseg - INFO - Iter [1700/26000]	lr: 9.347e-05, eta: 8:20:33, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0741, acc_seg: 97.2243, aux.loss_ce: 0.0379, aux.acc_seg: 96.2682, loss: 0.1120
+2026-04-14 05:55:45,369 - mmseg - INFO - Iter [1750/26000]	lr: 9.327e-05, eta: 8:19:00, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0682, acc_seg: 97.4364, aux.loss_ce: 0.0356, aux.acc_seg: 96.4439, loss: 0.1038
+2026-04-14 05:56:45,686 - mmseg - INFO - Iter [1800/26000]	lr: 9.308e-05, eta: 8:17:40, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0710, acc_seg: 97.3133, aux.loss_ce: 0.0364, aux.acc_seg: 96.3855, loss: 0.1074
+2026-04-14 05:57:45,084 - mmseg - INFO - Iter [1850/26000]	lr: 9.289e-05, eta: 8:16:08, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0709, acc_seg: 97.3577, aux.loss_ce: 0.0361, aux.acc_seg: 96.4494, loss: 0.1070
+2026-04-14 05:58:44,549 - mmseg - INFO - Iter [1900/26000]	lr: 9.270e-05, eta: 8:14:39, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0675, acc_seg: 97.4450, aux.loss_ce: 0.0357, aux.acc_seg: 96.4080, loss: 0.1032
+2026-04-14 05:59:44,922 - mmseg - INFO - Iter [1950/26000]	lr: 9.250e-05, eta: 8:13:22, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0654, acc_seg: 97.5842, aux.loss_ce: 0.0343, aux.acc_seg: 96.6134, loss: 0.0998
+2026-04-14 06:00:45,156 - mmseg - INFO - Iter [2000/26000]	lr: 9.231e-05, eta: 8:12:05, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0713, acc_seg: 97.1951, aux.loss_ce: 0.0375, aux.acc_seg: 96.1570, loss: 0.1088
+2026-04-14 06:01:45,460 - mmseg - INFO - Iter [2050/26000]	lr: 9.212e-05, eta: 8:10:50, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0693, acc_seg: 97.3622, aux.loss_ce: 0.0361, aux.acc_seg: 96.3731, loss: 0.1054
+2026-04-14 06:02:45,456 - mmseg - INFO - Iter [2100/26000]	lr: 9.193e-05, eta: 8:09:31, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0602, acc_seg: 97.6828, aux.loss_ce: 0.0320, aux.acc_seg: 96.7693, loss: 0.0922
+2026-04-14 06:03:44,420 - mmseg - INFO - Iter [2150/26000]	lr: 9.173e-05, eta: 8:08:02, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0644, acc_seg: 97.5260, aux.loss_ce: 0.0346, aux.acc_seg: 96.5151, loss: 0.0990
+2026-04-14 06:04:43,416 - mmseg - INFO - Iter [2200/26000]	lr: 9.154e-05, eta: 8:06:35, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0649, acc_seg: 97.5335, aux.loss_ce: 0.0340, aux.acc_seg: 96.5860, loss: 0.0989
+2026-04-14 06:05:42,627 - mmseg - INFO - Iter [2250/26000]	lr: 9.135e-05, eta: 8:05:11, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0671, acc_seg: 97.4396, aux.loss_ce: 0.0348, aux.acc_seg: 96.5097, loss: 0.1019
+2026-04-14 06:06:42,795 - mmseg - INFO - Iter [2300/26000]	lr: 9.116e-05, eta: 8:03:58, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0632, acc_seg: 97.5829, aux.loss_ce: 0.0340, aux.acc_seg: 96.5276, loss: 0.0972
+2026-04-14 06:07:41,895 - mmseg - INFO - Iter [2350/26000]	lr: 9.097e-05, eta: 8:02:35, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0600, acc_seg: 97.6933, aux.loss_ce: 0.0327, aux.acc_seg: 96.6703, loss: 0.0928
+2026-04-14 06:08:40,982 - mmseg - INFO - Iter [2400/26000]	lr: 9.077e-05, eta: 8:01:13, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0606, acc_seg: 97.6408, aux.loss_ce: 0.0327, aux.acc_seg: 96.6591, loss: 0.0933
+2026-04-14 06:09:40,402 - mmseg - INFO - Iter [2450/26000]	lr: 9.058e-05, eta: 7:59:55, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0538, acc_seg: 97.9432, aux.loss_ce: 0.0295, aux.acc_seg: 96.9994, loss: 0.0833
+2026-04-14 06:10:40,486 - mmseg - INFO - Iter [2500/26000]	lr: 9.039e-05, eta: 7:58:44, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0576, acc_seg: 97.7511, aux.loss_ce: 0.0319, aux.acc_seg: 96.7023, loss: 0.0895
+2026-04-14 06:11:40,754 - mmseg - INFO - Iter [2550/26000]	lr: 9.020e-05, eta: 7:57:35, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0533, acc_seg: 97.9624, aux.loss_ce: 0.0288, aux.acc_seg: 97.0888, loss: 0.0821
+2026-04-14 06:12:45,696 - mmseg - INFO - 
+--- Dual evaluation at iter 2600 ---
+2026-04-14 06:13:50,341 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.01%       92.67%       92.68%
+building           71.01%       68.01%       69.14%
+---------------------------------------------------
+mIoU               82.01%       80.34%       80.91%
+---------------------------------------------------
+2026-04-14 06:13:50,341 - mmseg - INFO - New best mIoU_single: 82.01% at iter 2600. Saving checkpoint...
+2026-04-14 06:13:54,899 - mmseg - INFO - Iter [2600/26000]	lr: 9.000e-05, eta: 7:57:09, time: 1.299, data_time: 0.106, memory: 38765, val/mIoU_single: 0.8201, val/mIoU_iter: 0.8034, val/mIoU_pseudo: 0.8091, loss_ce: 0.0665, acc_seg: 97.4048, aux.loss_ce: 0.0356, aux.acc_seg: 96.3390, loss: 0.1021
+2026-04-14 06:14:53,918 - mmseg - INFO - Iter [2650/26000]	lr: 8.981e-05, eta: 8:05:58, time: 2.564, data_time: 1.386, memory: 38765, loss_ce: 0.0557, acc_seg: 97.8346, aux.loss_ce: 0.0306, aux.acc_seg: 96.8393, loss: 0.0863
+2026-04-14 06:15:52,968 - mmseg - INFO - Iter [2700/26000]	lr: 8.962e-05, eta: 8:04:27, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0573, acc_seg: 97.7477, aux.loss_ce: 0.0316, aux.acc_seg: 96.7246, loss: 0.0889
+2026-04-14 06:16:52,320 - mmseg - INFO - Iter [2750/26000]	lr: 8.943e-05, eta: 8:02:59, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0545, acc_seg: 97.9052, aux.loss_ce: 0.0302, aux.acc_seg: 96.9179, loss: 0.0847
+2026-04-14 06:17:52,422 - mmseg - INFO - Iter [2800/26000]	lr: 8.923e-05, eta: 8:01:38, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0555, acc_seg: 97.8377, aux.loss_ce: 0.0308, aux.acc_seg: 96.8328, loss: 0.0863
+2026-04-14 06:18:51,199 - mmseg - INFO - Iter [2850/26000]	lr: 8.904e-05, eta: 8:00:07, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0603, acc_seg: 97.6660, aux.loss_ce: 0.0327, aux.acc_seg: 96.6777, loss: 0.0930
+2026-04-14 06:19:49,915 - mmseg - INFO - Iter [2900/26000]	lr: 8.885e-05, eta: 7:58:37, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0560, acc_seg: 97.8023, aux.loss_ce: 0.0314, aux.acc_seg: 96.7529, loss: 0.0874
+2026-04-14 06:20:48,806 - mmseg - INFO - Iter [2950/26000]	lr: 8.866e-05, eta: 7:57:09, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0503, acc_seg: 98.0381, aux.loss_ce: 0.0294, aux.acc_seg: 96.9290, loss: 0.0798
+2026-04-14 06:21:47,884 - mmseg - INFO - Iter [3000/26000]	lr: 8.847e-05, eta: 7:55:44, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0522, acc_seg: 97.9580, aux.loss_ce: 0.0291, aux.acc_seg: 97.0203, loss: 0.0812
+2026-04-14 06:22:48,034 - mmseg - INFO - Iter [3050/26000]	lr: 8.827e-05, eta: 7:54:28, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0512, acc_seg: 98.0469, aux.loss_ce: 0.0281, aux.acc_seg: 97.1419, loss: 0.0793
+2026-04-14 06:23:46,829 - mmseg - INFO - Iter [3100/26000]	lr: 8.808e-05, eta: 7:53:02, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0539, acc_seg: 97.9073, aux.loss_ce: 0.0302, aux.acc_seg: 96.8955, loss: 0.0841
+2026-04-14 06:24:45,430 - mmseg - INFO - Iter [3150/26000]	lr: 8.789e-05, eta: 7:51:35, time: 1.172, data_time: 0.002, memory: 38765, loss_ce: 0.0524, acc_seg: 97.9392, aux.loss_ce: 0.0295, aux.acc_seg: 96.9115, loss: 0.0819
+2026-04-14 06:25:44,138 - mmseg - INFO - Iter [3200/26000]	lr: 8.770e-05, eta: 7:50:11, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0575, acc_seg: 97.7398, aux.loss_ce: 0.0315, aux.acc_seg: 96.7492, loss: 0.0890
+2026-04-14 06:26:43,084 - mmseg - INFO - Iter [3250/26000]	lr: 8.750e-05, eta: 7:48:48, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0514, acc_seg: 97.9890, aux.loss_ce: 0.0290, aux.acc_seg: 97.0000, loss: 0.0805
+2026-04-14 06:27:42,338 - mmseg - INFO - Iter [3300/26000]	lr: 8.731e-05, eta: 7:47:29, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0543, acc_seg: 97.8658, aux.loss_ce: 0.0301, aux.acc_seg: 96.8704, loss: 0.0844
+2026-04-14 06:28:42,599 - mmseg - INFO - Iter [3350/26000]	lr: 8.712e-05, eta: 7:46:17, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0555, acc_seg: 97.7895, aux.loss_ce: 0.0313, aux.acc_seg: 96.7094, loss: 0.0869
+2026-04-14 06:29:42,616 - mmseg - INFO - Iter [3400/26000]	lr: 8.693e-05, eta: 7:45:03, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0507, acc_seg: 97.9874, aux.loss_ce: 0.0287, aux.acc_seg: 97.0023, loss: 0.0794
+2026-04-14 06:30:42,936 - mmseg - INFO - Iter [3450/26000]	lr: 8.673e-05, eta: 7:43:52, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0509, acc_seg: 97.9957, aux.loss_ce: 0.0287, aux.acc_seg: 97.0237, loss: 0.0796
+2026-04-14 06:31:43,121 - mmseg - INFO - Iter [3500/26000]	lr: 8.654e-05, eta: 7:42:41, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0491, acc_seg: 98.0555, aux.loss_ce: 0.0280, aux.acc_seg: 97.0910, loss: 0.0772
+2026-04-14 06:32:43,295 - mmseg - INFO - Iter [3550/26000]	lr: 8.635e-05, eta: 7:41:30, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0507, acc_seg: 97.9866, aux.loss_ce: 0.0287, aux.acc_seg: 97.0077, loss: 0.0794
+2026-04-14 06:33:42,738 - mmseg - INFO - Iter [3600/26000]	lr: 8.616e-05, eta: 7:40:14, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0502, acc_seg: 97.9952, aux.loss_ce: 0.0285, aux.acc_seg: 97.0192, loss: 0.0786
+2026-04-14 06:34:41,382 - mmseg - INFO - Iter [3650/26000]	lr: 8.597e-05, eta: 7:38:54, time: 1.173, data_time: 0.002, memory: 38765, loss_ce: 0.0536, acc_seg: 97.8740, aux.loss_ce: 0.0304, aux.acc_seg: 96.8183, loss: 0.0840
+2026-04-14 06:35:40,083 - mmseg - INFO - Iter [3700/26000]	lr: 8.577e-05, eta: 7:37:35, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0480, acc_seg: 98.0978, aux.loss_ce: 0.0274, aux.acc_seg: 97.1391, loss: 0.0755
+2026-04-14 06:36:38,975 - mmseg - INFO - Iter [3750/26000]	lr: 8.558e-05, eta: 7:36:18, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0491, acc_seg: 98.0713, aux.loss_ce: 0.0278, aux.acc_seg: 97.1011, loss: 0.0769
+2026-04-14 06:37:38,076 - mmseg - INFO - Iter [3800/26000]	lr: 8.539e-05, eta: 7:35:02, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0526, acc_seg: 97.9152, aux.loss_ce: 0.0302, aux.acc_seg: 96.8267, loss: 0.0829
+2026-04-14 06:38:38,051 - mmseg - INFO - Iter [3850/26000]	lr: 8.520e-05, eta: 7:33:52, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0496, acc_seg: 98.0629, aux.loss_ce: 0.0287, aux.acc_seg: 97.0243, loss: 0.0782
+2026-04-14 06:39:42,819 - mmseg - INFO - 
+--- Dual evaluation at iter 3900 ---
+2026-04-14 06:40:45,946 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.44%       92.88%       92.68%
+building           72.50%       69.77%       69.14%
+---------------------------------------------------
+mIoU               82.97%       81.33%       80.91%
+---------------------------------------------------
+2026-04-14 06:40:45,946 - mmseg - INFO - New best mIoU_single: 82.97% at iter 3900. Saving checkpoint...
+2026-04-14 06:40:50,475 - mmseg - INFO - Iter [3900/26000]	lr: 8.500e-05, eta: 7:33:09, time: 1.295, data_time: 0.104, memory: 38765, val/mIoU_single: 0.8297, val/mIoU_iter: 0.8133, val/mIoU_pseudo: 0.8091, loss_ce: 0.0465, acc_seg: 98.1600, aux.loss_ce: 0.0272, aux.acc_seg: 97.1395, loss: 0.0737
+2026-04-14 06:41:49,603 - mmseg - INFO - Iter [3950/26000]	lr: 8.481e-05, eta: 7:38:12, time: 2.536, data_time: 1.355, memory: 38765, loss_ce: 0.0444, acc_seg: 98.2744, aux.loss_ce: 0.0262, aux.acc_seg: 97.2743, loss: 0.0706
+2026-04-14 06:42:48,995 - mmseg - INFO - Iter [4000/26000]	lr: 8.462e-05, eta: 7:36:53, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0427, acc_seg: 98.3192, aux.loss_ce: 0.0255, aux.acc_seg: 97.3313, loss: 0.0682
+2026-04-14 06:43:48,919 - mmseg - INFO - Iter [4050/26000]	lr: 8.443e-05, eta: 7:35:38, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0548, acc_seg: 97.8242, aux.loss_ce: 0.0301, aux.acc_seg: 96.8590, loss: 0.0849
+2026-04-14 06:44:48,082 - mmseg - INFO - Iter [4100/26000]	lr: 8.423e-05, eta: 7:34:19, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0569, acc_seg: 97.7957, aux.loss_ce: 0.0307, aux.acc_seg: 96.8322, loss: 0.0876
+2026-04-14 06:45:47,713 - mmseg - INFO - Iter [4150/26000]	lr: 8.404e-05, eta: 7:33:03, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0555, acc_seg: 97.8253, aux.loss_ce: 0.0299, aux.acc_seg: 96.9029, loss: 0.0854
+2026-04-14 06:46:47,366 - mmseg - INFO - Iter [4200/26000]	lr: 8.385e-05, eta: 7:31:48, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0522, acc_seg: 97.9469, aux.loss_ce: 0.0296, aux.acc_seg: 96.9250, loss: 0.0817
+2026-04-14 06:47:46,598 - mmseg - INFO - Iter [4250/26000]	lr: 8.366e-05, eta: 7:30:30, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0532, acc_seg: 97.8780, aux.loss_ce: 0.0298, aux.acc_seg: 96.8922, loss: 0.0829
+2026-04-14 06:48:46,572 - mmseg - INFO - Iter [4300/26000]	lr: 8.347e-05, eta: 7:29:17, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0527, acc_seg: 97.8937, aux.loss_ce: 0.0305, aux.acc_seg: 96.7626, loss: 0.0833
+2026-04-14 06:49:45,647 - mmseg - INFO - Iter [4350/26000]	lr: 8.327e-05, eta: 7:28:00, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0450, acc_seg: 98.2422, aux.loss_ce: 0.0268, aux.acc_seg: 97.1947, loss: 0.0718
+2026-04-14 06:50:44,722 - mmseg - INFO - Iter [4400/26000]	lr: 8.308e-05, eta: 7:26:43, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0423, acc_seg: 98.3281, aux.loss_ce: 0.0258, aux.acc_seg: 97.2854, loss: 0.0682
+2026-04-14 06:51:44,639 - mmseg - INFO - Iter [4450/26000]	lr: 8.289e-05, eta: 7:25:31, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0537, acc_seg: 97.8964, aux.loss_ce: 0.0303, aux.acc_seg: 96.8756, loss: 0.0840
+2026-04-14 06:52:43,831 - mmseg - INFO - Iter [4500/26000]	lr: 8.270e-05, eta: 7:24:15, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0499, acc_seg: 98.0610, aux.loss_ce: 0.0283, aux.acc_seg: 97.0640, loss: 0.0782
+2026-04-14 06:53:42,753 - mmseg - INFO - Iter [4550/26000]	lr: 8.250e-05, eta: 7:22:59, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0506, acc_seg: 98.0126, aux.loss_ce: 0.0286, aux.acc_seg: 97.0204, loss: 0.0792
+2026-04-14 06:54:41,814 - mmseg - INFO - Iter [4600/26000]	lr: 8.231e-05, eta: 7:21:43, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0516, acc_seg: 97.9812, aux.loss_ce: 0.0285, aux.acc_seg: 97.0178, loss: 0.0800
+2026-04-14 06:55:41,371 - mmseg - INFO - Iter [4650/26000]	lr: 8.212e-05, eta: 7:20:31, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0528, acc_seg: 97.8657, aux.loss_ce: 0.0299, aux.acc_seg: 96.8309, loss: 0.0827
+2026-04-14 06:56:41,516 - mmseg - INFO - Iter [4700/26000]	lr: 8.193e-05, eta: 7:19:21, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0477, acc_seg: 98.0951, aux.loss_ce: 0.0279, aux.acc_seg: 97.0537, loss: 0.0756
+2026-04-14 06:57:40,782 - mmseg - INFO - Iter [4750/26000]	lr: 8.173e-05, eta: 7:18:07, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0472, acc_seg: 98.1391, aux.loss_ce: 0.0279, aux.acc_seg: 97.0734, loss: 0.0751
+2026-04-14 06:58:40,768 - mmseg - INFO - Iter [4800/26000]	lr: 8.154e-05, eta: 7:16:57, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0451, acc_seg: 98.2578, aux.loss_ce: 0.0265, aux.acc_seg: 97.2430, loss: 0.0717
+2026-04-14 06:59:40,423 - mmseg - INFO - Iter [4850/26000]	lr: 8.135e-05, eta: 7:15:46, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0477, acc_seg: 98.0955, aux.loss_ce: 0.0277, aux.acc_seg: 97.0669, loss: 0.0754
+2026-04-14 07:00:39,666 - mmseg - INFO - Iter [4900/26000]	lr: 8.116e-05, eta: 7:14:33, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0455, acc_seg: 98.1911, aux.loss_ce: 0.0268, aux.acc_seg: 97.1629, loss: 0.0723
+2026-04-14 07:01:39,606 - mmseg - INFO - Iter [4950/26000]	lr: 8.097e-05, eta: 7:13:23, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0481, acc_seg: 98.0653, aux.loss_ce: 0.0280, aux.acc_seg: 97.0223, loss: 0.0761
+2026-04-14 07:02:39,326 - mmseg - INFO - Iter [5000/26000]	lr: 8.077e-05, eta: 7:12:13, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0488, acc_seg: 98.0393, aux.loss_ce: 0.0285, aux.acc_seg: 96.9659, loss: 0.0773
+2026-04-14 07:03:38,524 - mmseg - INFO - Iter [5050/26000]	lr: 8.058e-05, eta: 7:11:01, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0480, acc_seg: 98.1006, aux.loss_ce: 0.0281, aux.acc_seg: 97.0521, loss: 0.0761
+2026-04-14 07:04:38,507 - mmseg - INFO - Iter [5100/26000]	lr: 8.039e-05, eta: 7:09:52, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0436, acc_seg: 98.2570, aux.loss_ce: 0.0263, aux.acc_seg: 97.1991, loss: 0.0699
+2026-04-14 07:05:38,166 - mmseg - INFO - Iter [5150/26000]	lr: 8.020e-05, eta: 7:08:42, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0459, acc_seg: 98.1871, aux.loss_ce: 0.0271, aux.acc_seg: 97.1605, loss: 0.0730
+2026-04-14 07:06:43,134 - mmseg - INFO - 
+--- Dual evaluation at iter 5200 ---
+2026-04-14 07:07:46,175 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.53%       92.88%       92.68%
+building           72.23%       69.41%       69.14%
+---------------------------------------------------
+mIoU               82.88%       81.14%       80.91%
+---------------------------------------------------
+2026-04-14 07:07:46,177 - mmseg - INFO - Iter [5200/26000]	lr: 8.000e-05, eta: 7:07:53, time: 1.299, data_time: 0.095, memory: 38765, val/mIoU_single: 0.8288, val/mIoU_iter: 0.8114, val/mIoU_pseudo: 0.8091, loss_ce: 0.0450, acc_seg: 98.1905, aux.loss_ce: 0.0273, aux.acc_seg: 97.0829, loss: 0.0723
+2026-04-14 07:08:45,825 - mmseg - INFO - Iter [5250/26000]	lr: 7.981e-05, eta: 7:10:53, time: 2.454, data_time: 1.262, memory: 38765, loss_ce: 0.0403, acc_seg: 98.3894, aux.loss_ce: 0.0241, aux.acc_seg: 97.4501, loss: 0.0643
+2026-04-14 07:09:45,732 - mmseg - INFO - Iter [5300/26000]	lr: 7.962e-05, eta: 7:09:41, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0431, acc_seg: 98.2774, aux.loss_ce: 0.0255, aux.acc_seg: 97.2929, loss: 0.0686
+2026-04-14 07:10:45,870 - mmseg - INFO - Iter [5350/26000]	lr: 7.943e-05, eta: 7:08:30, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0458, acc_seg: 98.1624, aux.loss_ce: 0.0269, aux.acc_seg: 97.1447, loss: 0.0727
+2026-04-14 07:11:45,567 - mmseg - INFO - Iter [5400/26000]	lr: 7.923e-05, eta: 7:07:18, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0424, acc_seg: 98.3008, aux.loss_ce: 0.0255, aux.acc_seg: 97.2902, loss: 0.0679
+2026-04-14 07:12:45,753 - mmseg - INFO - Iter [5450/26000]	lr: 7.904e-05, eta: 7:06:08, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0441, acc_seg: 98.2317, aux.loss_ce: 0.0267, aux.acc_seg: 97.1679, loss: 0.0707
+2026-04-14 07:13:45,112 - mmseg - INFO - Iter [5500/26000]	lr: 7.885e-05, eta: 7:04:56, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0408, acc_seg: 98.4009, aux.loss_ce: 0.0251, aux.acc_seg: 97.3742, loss: 0.0659
+2026-04-14 07:14:44,886 - mmseg - INFO - Iter [5550/26000]	lr: 7.866e-05, eta: 7:03:44, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0474, acc_seg: 98.0774, aux.loss_ce: 0.0279, aux.acc_seg: 97.0408, loss: 0.0752
+2026-04-14 07:15:45,155 - mmseg - INFO - Iter [5600/26000]	lr: 7.847e-05, eta: 7:02:35, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0405, acc_seg: 98.3865, aux.loss_ce: 0.0250, aux.acc_seg: 97.3469, loss: 0.0655
+2026-04-14 07:16:43,823 - mmseg - INFO - Iter [5650/26000]	lr: 7.827e-05, eta: 7:01:21, time: 1.173, data_time: 0.002, memory: 38765, loss_ce: 0.0411, acc_seg: 98.3629, aux.loss_ce: 0.0254, aux.acc_seg: 97.3223, loss: 0.0665
+2026-04-14 07:17:42,477 - mmseg - INFO - Iter [5700/26000]	lr: 7.808e-05, eta: 7:00:06, time: 1.173, data_time: 0.002, memory: 38765, loss_ce: 0.0420, acc_seg: 98.3285, aux.loss_ce: 0.0249, aux.acc_seg: 97.3867, loss: 0.0668
+2026-04-14 07:18:41,297 - mmseg - INFO - Iter [5750/26000]	lr: 7.789e-05, eta: 6:58:53, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0453, acc_seg: 98.1768, aux.loss_ce: 0.0275, aux.acc_seg: 97.0602, loss: 0.0727
+2026-04-14 07:19:40,290 - mmseg - INFO - Iter [5800/26000]	lr: 7.770e-05, eta: 6:57:40, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0442, acc_seg: 98.2278, aux.loss_ce: 0.0274, aux.acc_seg: 97.0979, loss: 0.0716
+2026-04-14 07:20:40,085 - mmseg - INFO - Iter [5850/26000]	lr: 7.750e-05, eta: 6:56:30, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0435, acc_seg: 98.2525, aux.loss_ce: 0.0256, aux.acc_seg: 97.2978, loss: 0.0691
+2026-04-14 07:21:39,383 - mmseg - INFO - Iter [5900/26000]	lr: 7.731e-05, eta: 6:55:19, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0435, acc_seg: 98.2529, aux.loss_ce: 0.0263, aux.acc_seg: 97.1891, loss: 0.0698
+2026-04-14 07:22:38,344 - mmseg - INFO - Iter [5950/26000]	lr: 7.712e-05, eta: 6:54:07, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0400, acc_seg: 98.4201, aux.loss_ce: 0.0247, aux.acc_seg: 97.3901, loss: 0.0646
+2026-04-14 07:23:37,467 - mmseg - INFO - Iter [6000/26000]	lr: 7.693e-05, eta: 6:52:55, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0427, acc_seg: 98.2762, aux.loss_ce: 0.0261, aux.acc_seg: 97.2202, loss: 0.0688
+2026-04-14 07:24:37,138 - mmseg - INFO - Iter [6050/26000]	lr: 7.673e-05, eta: 6:51:46, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0417, acc_seg: 98.3293, aux.loss_ce: 0.0253, aux.acc_seg: 97.3264, loss: 0.0670
+2026-04-14 07:25:37,047 - mmseg - INFO - Iter [6100/26000]	lr: 7.654e-05, eta: 6:50:37, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0429, acc_seg: 98.2706, aux.loss_ce: 0.0263, aux.acc_seg: 97.1913, loss: 0.0693
+2026-04-14 07:26:36,270 - mmseg - INFO - Iter [6150/26000]	lr: 7.635e-05, eta: 6:49:27, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0447, acc_seg: 98.1999, aux.loss_ce: 0.0277, aux.acc_seg: 97.0341, loss: 0.0724
+2026-04-14 07:27:35,607 - mmseg - INFO - Iter [6200/26000]	lr: 7.616e-05, eta: 6:48:17, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0419, acc_seg: 98.3081, aux.loss_ce: 0.0254, aux.acc_seg: 97.2896, loss: 0.0673
+2026-04-14 07:28:36,155 - mmseg - INFO - Iter [6250/26000]	lr: 7.597e-05, eta: 6:47:11, time: 1.211, data_time: 0.002, memory: 38765, loss_ce: 0.0443, acc_seg: 98.2368, aux.loss_ce: 0.0267, aux.acc_seg: 97.1767, loss: 0.0710
+2026-04-14 07:29:35,596 - mmseg - INFO - Iter [6300/26000]	lr: 7.577e-05, eta: 6:46:01, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0432, acc_seg: 98.2659, aux.loss_ce: 0.0266, aux.acc_seg: 97.1672, loss: 0.0697
+2026-04-14 07:30:34,935 - mmseg - INFO - Iter [6350/26000]	lr: 7.558e-05, eta: 6:44:52, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0405, acc_seg: 98.3698, aux.loss_ce: 0.0248, aux.acc_seg: 97.3695, loss: 0.0653
+2026-04-14 07:31:35,313 - mmseg - INFO - Iter [6400/26000]	lr: 7.539e-05, eta: 6:43:46, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0424, acc_seg: 98.2894, aux.loss_ce: 0.0260, aux.acc_seg: 97.2291, loss: 0.0684
+2026-04-14 07:32:34,734 - mmseg - INFO - Iter [6450/26000]	lr: 7.520e-05, eta: 6:42:37, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0489, acc_seg: 98.0242, aux.loss_ce: 0.0290, aux.acc_seg: 96.8943, loss: 0.0779
+2026-04-14 07:33:38,644 - mmseg - INFO - 
+--- Dual evaluation at iter 6500 ---
+2026-04-14 07:34:41,974 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.53%       92.98%       92.68%
+building           72.75%       70.10%       69.14%
+---------------------------------------------------
+mIoU               83.14%       81.54%       80.91%
+---------------------------------------------------
+2026-04-14 07:34:41,974 - mmseg - INFO - New best mIoU_single: 83.14% at iter 6500. Saving checkpoint...
+2026-04-14 07:34:46,476 - mmseg - INFO - Iter [6500/26000]	lr: 7.500e-05, eta: 6:41:41, time: 1.278, data_time: 0.091, memory: 38765, val/mIoU_single: 0.8314, val/mIoU_iter: 0.8154, val/mIoU_pseudo: 0.8091, loss_ce: 0.0504, acc_seg: 97.9831, aux.loss_ce: 0.0295, aux.acc_seg: 96.8849, loss: 0.0799
+2026-04-14 07:35:45,507 - mmseg - INFO - Iter [6550/26000]	lr: 7.481e-05, eta: 6:43:53, time: 2.537, data_time: 1.358, memory: 38765, loss_ce: 0.0452, acc_seg: 98.1927, aux.loss_ce: 0.0276, aux.acc_seg: 97.0832, loss: 0.0729
+2026-04-14 07:36:44,572 - mmseg - INFO - Iter [6600/26000]	lr: 7.462e-05, eta: 6:42:41, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0484, acc_seg: 98.1776, aux.loss_ce: 0.0285, aux.acc_seg: 97.1102, loss: 0.0769
+2026-04-14 07:37:43,857 - mmseg - INFO - Iter [6650/26000]	lr: 7.443e-05, eta: 6:41:30, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0412, acc_seg: 98.3482, aux.loss_ce: 0.0251, aux.acc_seg: 97.3064, loss: 0.0664
+2026-04-14 07:38:44,041 - mmseg - INFO - Iter [6700/26000]	lr: 7.423e-05, eta: 6:40:22, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0402, acc_seg: 98.3914, aux.loss_ce: 0.0249, aux.acc_seg: 97.3519, loss: 0.0651
+2026-04-14 07:39:43,271 - mmseg - INFO - Iter [6750/26000]	lr: 7.404e-05, eta: 6:39:11, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0451, acc_seg: 98.2451, aux.loss_ce: 0.0268, aux.acc_seg: 97.1975, loss: 0.0718
+2026-04-14 07:40:42,619 - mmseg - INFO - Iter [6800/26000]	lr: 7.385e-05, eta: 6:38:01, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0426, acc_seg: 98.3043, aux.loss_ce: 0.0254, aux.acc_seg: 97.2991, loss: 0.0680
+2026-04-14 07:41:42,663 - mmseg - INFO - Iter [6850/26000]	lr: 7.366e-05, eta: 6:36:52, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0478, acc_seg: 98.1521, aux.loss_ce: 0.0280, aux.acc_seg: 97.0627, loss: 0.0758
+2026-04-14 07:42:42,149 - mmseg - INFO - Iter [6900/26000]	lr: 7.347e-05, eta: 6:35:43, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0457, acc_seg: 98.1898, aux.loss_ce: 0.0285, aux.acc_seg: 97.0008, loss: 0.0742
+2026-04-14 07:43:40,907 - mmseg - INFO - Iter [6950/26000]	lr: 7.327e-05, eta: 6:34:31, time: 1.175, data_time: 0.002, memory: 38765, loss_ce: 0.0498, acc_seg: 98.0111, aux.loss_ce: 0.0288, aux.acc_seg: 96.9862, loss: 0.0786
+2026-04-14 07:44:39,713 - mmseg - INFO - Iter [7000/26000]	lr: 7.308e-05, eta: 6:33:20, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0466, acc_seg: 98.1855, aux.loss_ce: 0.0272, aux.acc_seg: 97.2060, loss: 0.0738
+2026-04-14 07:45:38,841 - mmseg - INFO - Iter [7050/26000]	lr: 7.289e-05, eta: 6:32:10, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0430, acc_seg: 98.3283, aux.loss_ce: 0.0258, aux.acc_seg: 97.3092, loss: 0.0688
+2026-04-14 07:46:38,523 - mmseg - INFO - Iter [7100/26000]	lr: 7.270e-05, eta: 6:31:02, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0410, acc_seg: 98.3771, aux.loss_ce: 0.0255, aux.acc_seg: 97.3150, loss: 0.0665
+2026-04-14 07:47:38,225 - mmseg - INFO - Iter [7150/26000]	lr: 7.250e-05, eta: 6:29:53, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0419, acc_seg: 98.3196, aux.loss_ce: 0.0255, aux.acc_seg: 97.3113, loss: 0.0674
+2026-04-14 07:48:37,098 - mmseg - INFO - Iter [7200/26000]	lr: 7.231e-05, eta: 6:28:43, time: 1.177, data_time: 0.002, memory: 38765, loss_ce: 0.0419, acc_seg: 98.3246, aux.loss_ce: 0.0258, aux.acc_seg: 97.2559, loss: 0.0677
+2026-04-14 07:49:36,033 - mmseg - INFO - Iter [7250/26000]	lr: 7.212e-05, eta: 6:27:33, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0428, acc_seg: 98.2658, aux.loss_ce: 0.0269, aux.acc_seg: 97.1151, loss: 0.0697
+2026-04-14 07:50:35,171 - mmseg - INFO - Iter [7300/26000]	lr: 7.193e-05, eta: 6:26:24, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0443, acc_seg: 98.1977, aux.loss_ce: 0.0268, aux.acc_seg: 97.1287, loss: 0.0711
+2026-04-14 07:51:35,045 - mmseg - INFO - Iter [7350/26000]	lr: 7.173e-05, eta: 6:25:16, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0372, acc_seg: 98.5153, aux.loss_ce: 0.0234, aux.acc_seg: 97.5187, loss: 0.0606
+2026-04-14 07:52:34,828 - mmseg - INFO - Iter [7400/26000]	lr: 7.154e-05, eta: 6:24:09, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0429, acc_seg: 98.2833, aux.loss_ce: 0.0260, aux.acc_seg: 97.2436, loss: 0.0689
+2026-04-14 07:53:33,940 - mmseg - INFO - Iter [7450/26000]	lr: 7.135e-05, eta: 6:23:00, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0372, acc_seg: 98.4932, aux.loss_ce: 0.0238, aux.acc_seg: 97.4605, loss: 0.0610
+2026-04-14 07:54:33,238 - mmseg - INFO - Iter [7500/26000]	lr: 7.116e-05, eta: 6:21:51, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0394, acc_seg: 98.4107, aux.loss_ce: 0.0256, aux.acc_seg: 97.2448, loss: 0.0650
+2026-04-14 07:55:33,415 - mmseg - INFO - Iter [7550/26000]	lr: 7.097e-05, eta: 6:20:45, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0360, acc_seg: 98.5463, aux.loss_ce: 0.0231, aux.acc_seg: 97.5373, loss: 0.0591
+2026-04-14 07:56:33,855 - mmseg - INFO - Iter [7600/26000]	lr: 7.077e-05, eta: 6:19:40, time: 1.209, data_time: 0.002, memory: 38765, loss_ce: 0.0418, acc_seg: 98.3043, aux.loss_ce: 0.0263, aux.acc_seg: 97.1809, loss: 0.0681
+2026-04-14 07:57:34,232 - mmseg - INFO - Iter [7650/26000]	lr: 7.058e-05, eta: 6:18:34, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0384, acc_seg: 98.4502, aux.loss_ce: 0.0244, aux.acc_seg: 97.3819, loss: 0.0628
+2026-04-14 07:58:33,586 - mmseg - INFO - Iter [7700/26000]	lr: 7.039e-05, eta: 6:17:26, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0382, acc_seg: 98.4565, aux.loss_ce: 0.0248, aux.acc_seg: 97.3282, loss: 0.0630
+2026-04-14 07:59:36,912 - mmseg - INFO - Iter [7750/26000]	lr: 7.020e-05, eta: 6:16:28, time: 1.267, data_time: 0.078, memory: 38765, loss_ce: 0.0389, acc_seg: 98.4321, aux.loss_ce: 0.0245, aux.acc_seg: 97.3825, loss: 0.0634
+2026-04-14 08:00:36,840 - mmseg - INFO - 
+--- Dual evaluation at iter 7800 ---
+2026-04-14 08:01:41,265 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.71%       93.15%       92.68%
+building           73.05%       70.80%       69.14%
+---------------------------------------------------
+mIoU               83.38%       81.98%       80.91%
+---------------------------------------------------
+2026-04-14 08:01:41,265 - mmseg - INFO - New best mIoU_single: 83.38% at iter 7800. Saving checkpoint...
+2026-04-14 08:01:45,781 - mmseg - INFO - Iter [7800/26000]	lr: 7.000e-05, eta: 6:15:21, time: 1.199, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8338, val/mIoU_iter: 0.8198, val/mIoU_pseudo: 0.8091, loss_ce: 0.0365, acc_seg: 98.5084, aux.loss_ce: 0.0236, aux.acc_seg: 97.4639, loss: 0.0601
+2026-04-14 08:02:44,863 - mmseg - INFO - Iter [7850/26000]	lr: 6.981e-05, eta: 6:16:52, time: 2.560, data_time: 1.380, memory: 38765, loss_ce: 0.0393, acc_seg: 98.4015, aux.loss_ce: 0.0253, aux.acc_seg: 97.2799, loss: 0.0646
+2026-04-14 08:03:44,241 - mmseg - INFO - Iter [7900/26000]	lr: 6.962e-05, eta: 6:15:43, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0393, acc_seg: 98.4124, aux.loss_ce: 0.0254, aux.acc_seg: 97.2748, loss: 0.0648
+2026-04-14 08:04:44,333 - mmseg - INFO - Iter [7950/26000]	lr: 6.943e-05, eta: 6:14:36, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0365, acc_seg: 98.5256, aux.loss_ce: 0.0239, aux.acc_seg: 97.4343, loss: 0.0604
+2026-04-14 08:05:43,652 - mmseg - INFO - Iter [8000/26000]	lr: 6.923e-05, eta: 6:13:27, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0393, acc_seg: 98.4156, aux.loss_ce: 0.0244, aux.acc_seg: 97.4165, loss: 0.0637
+2026-04-14 08:06:43,013 - mmseg - INFO - Iter [8050/26000]	lr: 6.904e-05, eta: 6:12:18, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0354, acc_seg: 98.5587, aux.loss_ce: 0.0233, aux.acc_seg: 97.4836, loss: 0.0587
+2026-04-14 08:07:42,951 - mmseg - INFO - Iter [8100/26000]	lr: 6.885e-05, eta: 6:11:11, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0403, acc_seg: 98.3613, aux.loss_ce: 0.0258, aux.acc_seg: 97.2308, loss: 0.0660
+2026-04-14 08:08:43,049 - mmseg - INFO - Iter [8150/26000]	lr: 6.866e-05, eta: 6:10:04, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0344, acc_seg: 98.6073, aux.loss_ce: 0.0227, aux.acc_seg: 97.5662, loss: 0.0571
+2026-04-14 08:09:43,129 - mmseg - INFO - Iter [8200/26000]	lr: 6.847e-05, eta: 6:08:58, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0400, acc_seg: 98.3711, aux.loss_ce: 0.0256, aux.acc_seg: 97.2511, loss: 0.0656
+2026-04-14 08:10:42,705 - mmseg - INFO - Iter [8250/26000]	lr: 6.827e-05, eta: 6:07:50, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0370, acc_seg: 98.4952, aux.loss_ce: 0.0242, aux.acc_seg: 97.3839, loss: 0.0612
+2026-04-14 08:11:42,267 - mmseg - INFO - Iter [8300/26000]	lr: 6.808e-05, eta: 6:06:42, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0404, acc_seg: 98.3564, aux.loss_ce: 0.0253, aux.acc_seg: 97.2817, loss: 0.0657
+2026-04-14 08:12:42,349 - mmseg - INFO - Iter [8350/26000]	lr: 6.789e-05, eta: 6:05:35, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0374, acc_seg: 98.4645, aux.loss_ce: 0.0243, aux.acc_seg: 97.3644, loss: 0.0617
+2026-04-14 08:13:42,222 - mmseg - INFO - Iter [8400/26000]	lr: 6.770e-05, eta: 6:04:29, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0353, acc_seg: 98.5673, aux.loss_ce: 0.0231, aux.acc_seg: 97.5218, loss: 0.0584
+2026-04-14 08:14:42,317 - mmseg - INFO - Iter [8450/26000]	lr: 6.750e-05, eta: 6:03:22, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0373, acc_seg: 98.4810, aux.loss_ce: 0.0239, aux.acc_seg: 97.4307, loss: 0.0612
+2026-04-14 08:15:41,301 - mmseg - INFO - Iter [8500/26000]	lr: 6.731e-05, eta: 6:02:14, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0376, acc_seg: 98.4682, aux.loss_ce: 0.0245, aux.acc_seg: 97.3747, loss: 0.0621
+2026-04-14 08:16:40,318 - mmseg - INFO - Iter [8550/26000]	lr: 6.712e-05, eta: 6:01:05, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0355, acc_seg: 98.5591, aux.loss_ce: 0.0235, aux.acc_seg: 97.4881, loss: 0.0590
+2026-04-14 08:17:39,715 - mmseg - INFO - Iter [8600/26000]	lr: 6.693e-05, eta: 5:59:58, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0388, acc_seg: 98.4092, aux.loss_ce: 0.0252, aux.acc_seg: 97.2820, loss: 0.0640
+2026-04-14 08:18:39,764 - mmseg - INFO - Iter [8650/26000]	lr: 6.673e-05, eta: 5:58:52, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0361, acc_seg: 98.5463, aux.loss_ce: 0.0238, aux.acc_seg: 97.4562, loss: 0.0599
+2026-04-14 08:19:39,456 - mmseg - INFO - Iter [8700/26000]	lr: 6.654e-05, eta: 5:57:45, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0371, acc_seg: 98.5022, aux.loss_ce: 0.0245, aux.acc_seg: 97.3791, loss: 0.0616
+2026-04-14 08:20:39,413 - mmseg - INFO - Iter [8750/26000]	lr: 6.635e-05, eta: 5:56:39, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0387, acc_seg: 98.4292, aux.loss_ce: 0.0250, aux.acc_seg: 97.3289, loss: 0.0637
+2026-04-14 08:21:38,304 - mmseg - INFO - Iter [8800/26000]	lr: 6.616e-05, eta: 5:55:31, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0371, acc_seg: 98.5024, aux.loss_ce: 0.0236, aux.acc_seg: 97.4907, loss: 0.0607
+2026-04-14 08:22:37,204 - mmseg - INFO - Iter [8850/26000]	lr: 6.597e-05, eta: 5:54:23, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0348, acc_seg: 98.5964, aux.loss_ce: 0.0230, aux.acc_seg: 97.5455, loss: 0.0578
+2026-04-14 08:23:36,377 - mmseg - INFO - Iter [8900/26000]	lr: 6.577e-05, eta: 5:53:15, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0339, acc_seg: 98.6319, aux.loss_ce: 0.0234, aux.acc_seg: 97.4865, loss: 0.0573
+2026-04-14 08:24:36,174 - mmseg - INFO - Iter [8950/26000]	lr: 6.558e-05, eta: 5:52:09, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0397, acc_seg: 98.3899, aux.loss_ce: 0.0261, aux.acc_seg: 97.1823, loss: 0.0658
+2026-04-14 08:25:36,319 - mmseg - INFO - Iter [9000/26000]	lr: 6.539e-05, eta: 5:51:04, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0377, acc_seg: 98.4689, aux.loss_ce: 0.0245, aux.acc_seg: 97.3654, loss: 0.0622
+2026-04-14 08:26:41,520 - mmseg - INFO - Iter [9050/26000]	lr: 6.520e-05, eta: 5:50:08, time: 1.304, data_time: 0.098, memory: 38765, loss_ce: 0.0356, acc_seg: 98.5708, aux.loss_ce: 0.0235, aux.acc_seg: 97.4785, loss: 0.0591
+2026-04-14 08:27:40,886 - mmseg - INFO - 
+--- Dual evaluation at iter 9100 ---
+2026-04-14 08:28:43,638 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.61%       93.04%       92.68%
+building           73.15%       70.61%       69.14%
+---------------------------------------------------
+mIoU               83.38%       81.83%       80.91%
+---------------------------------------------------
+2026-04-14 08:28:43,640 - mmseg - INFO - Iter [9100/26000]	lr: 6.500e-05, eta: 5:49:01, time: 1.187, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8338, val/mIoU_iter: 0.8183, val/mIoU_pseudo: 0.8091, loss_ce: 0.0377, acc_seg: 98.5029, aux.loss_ce: 0.0249, aux.acc_seg: 97.3466, loss: 0.0626
+2026-04-14 08:29:44,038 - mmseg - INFO - Iter [9150/26000]	lr: 6.481e-05, eta: 5:49:52, time: 2.463, data_time: 1.257, memory: 38765, loss_ce: 0.0391, acc_seg: 98.4088, aux.loss_ce: 0.0253, aux.acc_seg: 97.2655, loss: 0.0645
+2026-04-14 08:30:44,171 - mmseg - INFO - Iter [9200/26000]	lr: 6.462e-05, eta: 5:48:45, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0358, acc_seg: 98.5503, aux.loss_ce: 0.0235, aux.acc_seg: 97.4928, loss: 0.0594
+2026-04-14 08:31:43,996 - mmseg - INFO - Iter [9250/26000]	lr: 6.443e-05, eta: 5:47:39, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0347, acc_seg: 98.5786, aux.loss_ce: 0.0232, aux.acc_seg: 97.4900, loss: 0.0580
+2026-04-14 08:32:43,096 - mmseg - INFO - Iter [9300/26000]	lr: 6.423e-05, eta: 5:46:31, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0364, acc_seg: 98.5125, aux.loss_ce: 0.0244, aux.acc_seg: 97.3885, loss: 0.0608
+2026-04-14 08:33:42,409 - mmseg - INFO - Iter [9350/26000]	lr: 6.404e-05, eta: 5:45:23, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0362, acc_seg: 98.5373, aux.loss_ce: 0.0239, aux.acc_seg: 97.4376, loss: 0.0601
+2026-04-14 08:34:42,503 - mmseg - INFO - Iter [9400/26000]	lr: 6.385e-05, eta: 5:44:17, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0357, acc_seg: 98.5403, aux.loss_ce: 0.0238, aux.acc_seg: 97.4449, loss: 0.0595
+2026-04-14 08:35:42,782 - mmseg - INFO - Iter [9450/26000]	lr: 6.366e-05, eta: 5:43:12, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0322, acc_seg: 98.6835, aux.loss_ce: 0.0215, aux.acc_seg: 97.6927, loss: 0.0536
+2026-04-14 08:36:43,427 - mmseg - INFO - Iter [9500/26000]	lr: 6.347e-05, eta: 5:42:07, time: 1.213, data_time: 0.002, memory: 38765, loss_ce: 0.0391, acc_seg: 98.3841, aux.loss_ce: 0.0261, aux.acc_seg: 97.1522, loss: 0.0652
+2026-04-14 08:37:43,625 - mmseg - INFO - Iter [9550/26000]	lr: 6.327e-05, eta: 5:41:01, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0323, acc_seg: 98.6852, aux.loss_ce: 0.0223, aux.acc_seg: 97.6090, loss: 0.0546
+2026-04-14 08:38:43,772 - mmseg - INFO - Iter [9600/26000]	lr: 6.308e-05, eta: 5:39:55, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0359, acc_seg: 98.5540, aux.loss_ce: 0.0238, aux.acc_seg: 97.4719, loss: 0.0597
+2026-04-14 08:39:43,375 - mmseg - INFO - Iter [9650/26000]	lr: 6.289e-05, eta: 5:38:49, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0407, acc_seg: 98.3365, aux.loss_ce: 0.0263, aux.acc_seg: 97.1446, loss: 0.0670
+2026-04-14 08:40:43,339 - mmseg - INFO - Iter [9700/26000]	lr: 6.270e-05, eta: 5:37:43, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0339, acc_seg: 98.6174, aux.loss_ce: 0.0234, aux.acc_seg: 97.4665, loss: 0.0573
+2026-04-14 08:41:43,019 - mmseg - INFO - Iter [9750/26000]	lr: 6.250e-05, eta: 5:36:37, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0344, acc_seg: 98.6025, aux.loss_ce: 0.0232, aux.acc_seg: 97.4981, loss: 0.0576
+2026-04-14 08:42:42,351 - mmseg - INFO - Iter [9800/26000]	lr: 6.231e-05, eta: 5:35:30, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0345, acc_seg: 98.5899, aux.loss_ce: 0.0237, aux.acc_seg: 97.4519, loss: 0.0582
+2026-04-14 08:43:42,528 - mmseg - INFO - Iter [9850/26000]	lr: 6.212e-05, eta: 5:34:25, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0353, acc_seg: 98.5574, aux.loss_ce: 0.0236, aux.acc_seg: 97.4453, loss: 0.0589
+2026-04-14 08:44:42,125 - mmseg - INFO - Iter [9900/26000]	lr: 6.193e-05, eta: 5:33:18, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0329, acc_seg: 98.6531, aux.loss_ce: 0.0226, aux.acc_seg: 97.5615, loss: 0.0555
+2026-04-14 08:45:42,255 - mmseg - INFO - Iter [9950/26000]	lr: 6.173e-05, eta: 5:32:13, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0338, acc_seg: 98.6087, aux.loss_ce: 0.0228, aux.acc_seg: 97.5243, loss: 0.0566
+2026-04-14 08:46:41,281 - mmseg - INFO - Iter [10000/26000]	lr: 6.154e-05, eta: 5:31:06, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0367, acc_seg: 98.5036, aux.loss_ce: 0.0247, aux.acc_seg: 97.3466, loss: 0.0613
+2026-04-14 08:47:40,206 - mmseg - INFO - Iter [10050/26000]	lr: 6.135e-05, eta: 5:29:59, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0342, acc_seg: 98.6233, aux.loss_ce: 0.0234, aux.acc_seg: 97.5046, loss: 0.0576
+2026-04-14 08:48:39,270 - mmseg - INFO - Iter [10100/26000]	lr: 6.116e-05, eta: 5:28:52, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0336, acc_seg: 98.6271, aux.loss_ce: 0.0228, aux.acc_seg: 97.5341, loss: 0.0565
+2026-04-14 08:49:38,910 - mmseg - INFO - Iter [10150/26000]	lr: 6.097e-05, eta: 5:27:46, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0337, acc_seg: 98.6134, aux.loss_ce: 0.0238, aux.acc_seg: 97.4088, loss: 0.0575
+2026-04-14 08:50:39,327 - mmseg - INFO - Iter [10200/26000]	lr: 6.077e-05, eta: 5:26:42, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0325, acc_seg: 98.6682, aux.loss_ce: 0.0222, aux.acc_seg: 97.6056, loss: 0.0546
+2026-04-14 08:51:40,021 - mmseg - INFO - Iter [10250/26000]	lr: 6.058e-05, eta: 5:25:38, time: 1.214, data_time: 0.002, memory: 38765, loss_ce: 0.0347, acc_seg: 98.5874, aux.loss_ce: 0.0235, aux.acc_seg: 97.4717, loss: 0.0582
+2026-04-14 08:52:39,376 - mmseg - INFO - Iter [10300/26000]	lr: 6.039e-05, eta: 5:24:32, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0334, acc_seg: 98.6412, aux.loss_ce: 0.0230, aux.acc_seg: 97.5142, loss: 0.0564
+2026-04-14 08:53:42,906 - mmseg - INFO - Iter [10350/26000]	lr: 6.020e-05, eta: 5:23:32, time: 1.271, data_time: 0.085, memory: 38765, loss_ce: 0.0355, acc_seg: 98.5374, aux.loss_ce: 0.0238, aux.acc_seg: 97.4278, loss: 0.0592
+2026-04-14 08:54:42,405 - mmseg - INFO - 
+--- Dual evaluation at iter 10400 ---
+2026-04-14 08:55:45,503 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.66%       93.18%       92.68%
+building           72.18%       70.50%       69.14%
+---------------------------------------------------
+mIoU               82.92%       81.84%       80.91%
+---------------------------------------------------
+2026-04-14 08:55:45,505 - mmseg - INFO - Iter [10400/26000]	lr: 6.000e-05, eta: 5:22:26, time: 1.190, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8292, val/mIoU_iter: 0.8184, val/mIoU_pseudo: 0.8091, loss_ce: 0.0359, acc_seg: 98.5220, aux.loss_ce: 0.0242, aux.acc_seg: 97.3897, loss: 0.0600
+2026-04-14 08:56:44,590 - mmseg - INFO - Iter [10450/26000]	lr: 5.981e-05, eta: 5:22:54, time: 2.444, data_time: 1.263, memory: 38765, loss_ce: 0.0332, acc_seg: 98.6341, aux.loss_ce: 0.0238, aux.acc_seg: 97.4096, loss: 0.0570
+2026-04-14 08:57:44,025 - mmseg - INFO - Iter [10500/26000]	lr: 5.962e-05, eta: 5:21:47, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0321, acc_seg: 98.6846, aux.loss_ce: 0.0227, aux.acc_seg: 97.5561, loss: 0.0548
+2026-04-14 08:58:44,379 - mmseg - INFO - Iter [10550/26000]	lr: 5.943e-05, eta: 5:20:42, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0321, acc_seg: 98.6787, aux.loss_ce: 0.0226, aux.acc_seg: 97.5416, loss: 0.0547
+2026-04-14 08:59:43,522 - mmseg - INFO - Iter [10600/26000]	lr: 5.923e-05, eta: 5:19:35, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0351, acc_seg: 98.5613, aux.loss_ce: 0.0247, aux.acc_seg: 97.3119, loss: 0.0598
+2026-04-14 09:00:42,593 - mmseg - INFO - Iter [10650/26000]	lr: 5.904e-05, eta: 5:18:28, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0343, acc_seg: 98.5839, aux.loss_ce: 0.0238, aux.acc_seg: 97.4145, loss: 0.0582
+2026-04-14 09:01:41,849 - mmseg - INFO - Iter [10700/26000]	lr: 5.885e-05, eta: 5:17:22, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0336, acc_seg: 98.6215, aux.loss_ce: 0.0238, aux.acc_seg: 97.4082, loss: 0.0575
+2026-04-14 09:02:42,260 - mmseg - INFO - Iter [10750/26000]	lr: 5.866e-05, eta: 5:16:17, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0369, acc_seg: 98.4769, aux.loss_ce: 0.0245, aux.acc_seg: 97.3373, loss: 0.0615
+2026-04-14 09:03:41,708 - mmseg - INFO - Iter [10800/26000]	lr: 5.847e-05, eta: 5:15:11, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0324, acc_seg: 98.6736, aux.loss_ce: 0.0233, aux.acc_seg: 97.4883, loss: 0.0557
+2026-04-14 09:04:41,456 - mmseg - INFO - Iter [10850/26000]	lr: 5.827e-05, eta: 5:14:05, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0362, acc_seg: 98.5105, aux.loss_ce: 0.0245, aux.acc_seg: 97.3630, loss: 0.0607
+2026-04-14 09:05:41,632 - mmseg - INFO - Iter [10900/26000]	lr: 5.808e-05, eta: 5:13:00, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0333, acc_seg: 98.6449, aux.loss_ce: 0.0233, aux.acc_seg: 97.4752, loss: 0.0567
+2026-04-14 09:06:41,603 - mmseg - INFO - Iter [10950/26000]	lr: 5.789e-05, eta: 5:11:55, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0295, acc_seg: 98.7981, aux.loss_ce: 0.0211, aux.acc_seg: 97.7341, loss: 0.0505
+2026-04-14 09:07:41,913 - mmseg - INFO - Iter [11000/26000]	lr: 5.770e-05, eta: 5:10:50, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0358, acc_seg: 98.5432, aux.loss_ce: 0.0245, aux.acc_seg: 97.3663, loss: 0.0603
+2026-04-14 09:08:41,358 - mmseg - INFO - Iter [11050/26000]	lr: 5.750e-05, eta: 5:09:44, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0314, acc_seg: 98.7346, aux.loss_ce: 0.0219, aux.acc_seg: 97.6695, loss: 0.0533
+2026-04-14 09:09:40,951 - mmseg - INFO - Iter [11100/26000]	lr: 5.731e-05, eta: 5:08:39, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0349, acc_seg: 98.5721, aux.loss_ce: 0.0234, aux.acc_seg: 97.4958, loss: 0.0583
+2026-04-14 09:10:40,740 - mmseg - INFO - Iter [11150/26000]	lr: 5.712e-05, eta: 5:07:33, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0307, acc_seg: 98.7366, aux.loss_ce: 0.0217, aux.acc_seg: 97.6442, loss: 0.0525
+2026-04-14 09:11:39,780 - mmseg - INFO - Iter [11200/26000]	lr: 5.693e-05, eta: 5:06:27, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0303, acc_seg: 98.7591, aux.loss_ce: 0.0215, aux.acc_seg: 97.6807, loss: 0.0518
+2026-04-14 09:12:38,833 - mmseg - INFO - Iter [11250/26000]	lr: 5.673e-05, eta: 5:05:21, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0327, acc_seg: 98.6613, aux.loss_ce: 0.0228, aux.acc_seg: 97.5438, loss: 0.0554
+2026-04-14 09:13:38,268 - mmseg - INFO - Iter [11300/26000]	lr: 5.654e-05, eta: 5:04:16, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0325, acc_seg: 98.6744, aux.loss_ce: 0.0227, aux.acc_seg: 97.5515, loss: 0.0552
+2026-04-14 09:14:39,392 - mmseg - INFO - Iter [11350/26000]	lr: 5.635e-05, eta: 5:03:12, time: 1.222, data_time: 0.002, memory: 38765, loss_ce: 0.0330, acc_seg: 98.6528, aux.loss_ce: 0.0229, aux.acc_seg: 97.5319, loss: 0.0558
+2026-04-14 09:15:39,329 - mmseg - INFO - Iter [11400/26000]	lr: 5.616e-05, eta: 5:02:07, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0337, acc_seg: 98.6268, aux.loss_ce: 0.0234, aux.acc_seg: 97.4924, loss: 0.0571
+2026-04-14 09:16:39,718 - mmseg - INFO - Iter [11450/26000]	lr: 5.597e-05, eta: 5:01:03, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0309, acc_seg: 98.7361, aux.loss_ce: 0.0215, aux.acc_seg: 97.6771, loss: 0.0524
+2026-04-14 09:17:39,140 - mmseg - INFO - Iter [11500/26000]	lr: 5.577e-05, eta: 4:59:58, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0311, acc_seg: 98.7212, aux.loss_ce: 0.0219, aux.acc_seg: 97.6367, loss: 0.0530
+2026-04-14 09:18:39,014 - mmseg - INFO - Iter [11550/26000]	lr: 5.558e-05, eta: 4:58:53, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0347, acc_seg: 98.5630, aux.loss_ce: 0.0240, aux.acc_seg: 97.3868, loss: 0.0586
+2026-04-14 09:19:39,220 - mmseg - INFO - Iter [11600/26000]	lr: 5.539e-05, eta: 4:57:49, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0324, acc_seg: 98.6775, aux.loss_ce: 0.0229, aux.acc_seg: 97.5252, loss: 0.0553
+2026-04-14 09:20:43,832 - mmseg - INFO - Iter [11650/26000]	lr: 5.520e-05, eta: 4:56:50, time: 1.292, data_time: 0.111, memory: 38765, loss_ce: 0.0311, acc_seg: 98.7342, aux.loss_ce: 0.0231, aux.acc_seg: 97.5052, loss: 0.0542
+2026-04-14 09:21:42,987 - mmseg - INFO - 
+--- Dual evaluation at iter 11700 ---
+2026-04-14 09:22:47,139 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.75%       93.20%       92.68%
+building           73.34%       71.35%       69.14%
+---------------------------------------------------
+mIoU               83.54%       82.28%       80.91%
+---------------------------------------------------
+2026-04-14 09:22:47,139 - mmseg - INFO - New best mIoU_single: 83.54% at iter 11700. Saving checkpoint...
+2026-04-14 09:22:51,674 - mmseg - INFO - Iter [11700/26000]	lr: 5.500e-05, eta: 4:55:44, time: 1.183, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8354, val/mIoU_iter: 0.8228, val/mIoU_pseudo: 0.8091, loss_ce: 0.0314, acc_seg: 98.7049, aux.loss_ce: 0.0225, aux.acc_seg: 97.5532, loss: 0.0540
+2026-04-14 09:23:51,562 - mmseg - INFO - Iter [11750/26000]	lr: 5.481e-05, eta: 4:56:03, time: 2.571, data_time: 1.375, memory: 38765, loss_ce: 0.0295, acc_seg: 98.7850, aux.loss_ce: 0.0220, aux.acc_seg: 97.6174, loss: 0.0515
+2026-04-14 09:24:50,895 - mmseg - INFO - Iter [11800/26000]	lr: 5.462e-05, eta: 4:54:57, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0284, acc_seg: 98.8371, aux.loss_ce: 0.0207, aux.acc_seg: 97.7584, loss: 0.0492
+2026-04-14 09:25:50,854 - mmseg - INFO - Iter [11850/26000]	lr: 5.443e-05, eta: 4:53:52, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0343, acc_seg: 98.5795, aux.loss_ce: 0.0245, aux.acc_seg: 97.3442, loss: 0.0588
+2026-04-14 09:26:50,775 - mmseg - INFO - Iter [11900/26000]	lr: 5.423e-05, eta: 4:52:46, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0296, acc_seg: 98.7885, aux.loss_ce: 0.0219, aux.acc_seg: 97.6228, loss: 0.0515
+2026-04-14 09:27:50,965 - mmseg - INFO - Iter [11950/26000]	lr: 5.404e-05, eta: 4:51:42, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0338, acc_seg: 98.5942, aux.loss_ce: 0.0243, aux.acc_seg: 97.3533, loss: 0.0581
+2026-04-14 09:28:50,555 - mmseg - INFO - Iter [12000/26000]	lr: 5.385e-05, eta: 4:50:36, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0303, acc_seg: 98.7559, aux.loss_ce: 0.0218, aux.acc_seg: 97.6442, loss: 0.0521
+2026-04-14 09:29:50,001 - mmseg - INFO - Iter [12050/26000]	lr: 5.366e-05, eta: 4:49:31, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0291, acc_seg: 98.8077, aux.loss_ce: 0.0214, aux.acc_seg: 97.6997, loss: 0.0505
+2026-04-14 09:30:50,209 - mmseg - INFO - Iter [12100/26000]	lr: 5.347e-05, eta: 4:48:26, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0288, acc_seg: 98.8175, aux.loss_ce: 0.0215, aux.acc_seg: 97.6742, loss: 0.0503
+2026-04-14 09:31:50,078 - mmseg - INFO - Iter [12150/26000]	lr: 5.327e-05, eta: 4:47:21, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0300, acc_seg: 98.7711, aux.loss_ce: 0.0216, aux.acc_seg: 97.6767, loss: 0.0516
+2026-04-14 09:32:49,072 - mmseg - INFO - Iter [12200/26000]	lr: 5.308e-05, eta: 4:46:15, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0323, acc_seg: 98.6629, aux.loss_ce: 0.0236, aux.acc_seg: 97.4307, loss: 0.0559
+2026-04-14 09:33:48,090 - mmseg - INFO - Iter [12250/26000]	lr: 5.289e-05, eta: 4:45:09, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0306, acc_seg: 98.7460, aux.loss_ce: 0.0223, aux.acc_seg: 97.5907, loss: 0.0529
+2026-04-14 09:34:47,357 - mmseg - INFO - Iter [12300/26000]	lr: 5.270e-05, eta: 4:44:04, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0295, acc_seg: 98.7965, aux.loss_ce: 0.0214, aux.acc_seg: 97.6973, loss: 0.0509
+2026-04-14 09:35:47,654 - mmseg - INFO - Iter [12350/26000]	lr: 5.250e-05, eta: 4:43:00, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0328, acc_seg: 98.6518, aux.loss_ce: 0.0235, aux.acc_seg: 97.4539, loss: 0.0562
+2026-04-14 09:36:46,541 - mmseg - INFO - Iter [12400/26000]	lr: 5.231e-05, eta: 4:41:54, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0329, acc_seg: 98.6315, aux.loss_ce: 0.0235, aux.acc_seg: 97.4333, loss: 0.0564
+2026-04-14 09:37:45,224 - mmseg - INFO - Iter [12450/26000]	lr: 5.212e-05, eta: 4:40:48, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0324, acc_seg: 98.6676, aux.loss_ce: 0.0236, aux.acc_seg: 97.4510, loss: 0.0560
+2026-04-14 09:38:44,021 - mmseg - INFO - Iter [12500/26000]	lr: 5.193e-05, eta: 4:39:42, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0308, acc_seg: 98.7319, aux.loss_ce: 0.0221, aux.acc_seg: 97.6129, loss: 0.0528
+2026-04-14 09:39:43,095 - mmseg - INFO - Iter [12550/26000]	lr: 5.173e-05, eta: 4:38:36, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0287, acc_seg: 98.8238, aux.loss_ce: 0.0213, aux.acc_seg: 97.6943, loss: 0.0500
+2026-04-14 09:40:42,460 - mmseg - INFO - Iter [12600/26000]	lr: 5.154e-05, eta: 4:37:31, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0311, acc_seg: 98.7122, aux.loss_ce: 0.0227, aux.acc_seg: 97.5135, loss: 0.0539
+2026-04-14 09:41:42,968 - mmseg - INFO - Iter [12650/26000]	lr: 5.135e-05, eta: 4:36:27, time: 1.210, data_time: 0.002, memory: 38765, loss_ce: 0.0317, acc_seg: 98.6919, aux.loss_ce: 0.0231, aux.acc_seg: 97.4873, loss: 0.0549
+2026-04-14 09:42:42,693 - mmseg - INFO - Iter [12700/26000]	lr: 5.116e-05, eta: 4:35:23, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0313, acc_seg: 98.7158, aux.loss_ce: 0.0222, aux.acc_seg: 97.6038, loss: 0.0534
+2026-04-14 09:43:43,049 - mmseg - INFO - Iter [12750/26000]	lr: 5.097e-05, eta: 4:34:19, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0298, acc_seg: 98.7806, aux.loss_ce: 0.0218, aux.acc_seg: 97.6597, loss: 0.0517
+2026-04-14 09:44:43,384 - mmseg - INFO - Iter [12800/26000]	lr: 5.077e-05, eta: 4:33:15, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0308, acc_seg: 98.7301, aux.loss_ce: 0.0223, aux.acc_seg: 97.5639, loss: 0.0532
+2026-04-14 09:45:42,746 - mmseg - INFO - Iter [12850/26000]	lr: 5.058e-05, eta: 4:32:10, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0310, acc_seg: 98.7074, aux.loss_ce: 0.0221, aux.acc_seg: 97.5844, loss: 0.0531
+2026-04-14 09:46:42,327 - mmseg - INFO - Iter [12900/26000]	lr: 5.039e-05, eta: 4:31:05, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0307, acc_seg: 98.7331, aux.loss_ce: 0.0228, aux.acc_seg: 97.5197, loss: 0.0535
+2026-04-14 09:47:47,221 - mmseg - INFO - Iter [12950/26000]	lr: 5.020e-05, eta: 4:30:06, time: 1.298, data_time: 0.095, memory: 38765, loss_ce: 0.0314, acc_seg: 98.7111, aux.loss_ce: 0.0235, aux.acc_seg: 97.4567, loss: 0.0548
+2026-04-14 09:48:46,234 - mmseg - INFO - 
+--- Dual evaluation at iter 13000 ---
+2026-04-14 09:49:49,460 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.60%       93.17%       92.68%
+building           73.21%       71.19%       69.14%
+---------------------------------------------------
+mIoU               83.40%       82.18%       80.91%
+---------------------------------------------------
+2026-04-14 09:49:49,462 - mmseg - INFO - Iter [13000/26000]	lr: 5.000e-05, eta: 4:29:01, time: 1.180, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8340, val/mIoU_iter: 0.8218, val/mIoU_pseudo: 0.8091, loss_ce: 0.0276, acc_seg: 98.8688, aux.loss_ce: 0.0216, aux.acc_seg: 97.6632, loss: 0.0491
+2026-04-14 09:50:48,626 - mmseg - INFO - Iter [13050/26000]	lr: 4.981e-05, eta: 4:28:59, time: 2.448, data_time: 1.266, memory: 38765, loss_ce: 0.0324, acc_seg: 98.6637, aux.loss_ce: 0.0239, aux.acc_seg: 97.4194, loss: 0.0563
+2026-04-14 09:51:48,760 - mmseg - INFO - Iter [13100/26000]	lr: 4.962e-05, eta: 4:27:54, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0273, acc_seg: 98.8726, aux.loss_ce: 0.0205, aux.acc_seg: 97.7799, loss: 0.0478
+2026-04-14 09:52:48,773 - mmseg - INFO - Iter [13150/26000]	lr: 4.943e-05, eta: 4:26:50, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0303, acc_seg: 98.7411, aux.loss_ce: 0.0227, aux.acc_seg: 97.5278, loss: 0.0530
+2026-04-14 09:53:49,035 - mmseg - INFO - Iter [13200/26000]	lr: 4.923e-05, eta: 4:25:45, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0310, acc_seg: 98.7172, aux.loss_ce: 0.0233, aux.acc_seg: 97.4578, loss: 0.0544
+2026-04-14 09:54:48,728 - mmseg - INFO - Iter [13250/26000]	lr: 4.904e-05, eta: 4:24:41, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0288, acc_seg: 98.8080, aux.loss_ce: 0.0214, aux.acc_seg: 97.6753, loss: 0.0502
+2026-04-14 09:55:48,898 - mmseg - INFO - Iter [13300/26000]	lr: 4.885e-05, eta: 4:23:36, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0316, acc_seg: 98.7156, aux.loss_ce: 0.0225, aux.acc_seg: 97.5819, loss: 0.0542
+2026-04-14 09:56:48,665 - mmseg - INFO - Iter [13350/26000]	lr: 4.866e-05, eta: 4:22:32, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0282, acc_seg: 98.8423, aux.loss_ce: 0.0213, aux.acc_seg: 97.6977, loss: 0.0495
+2026-04-14 09:57:47,990 - mmseg - INFO - Iter [13400/26000]	lr: 4.847e-05, eta: 4:21:27, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0275, acc_seg: 98.8718, aux.loss_ce: 0.0213, aux.acc_seg: 97.6828, loss: 0.0488
+2026-04-14 09:58:48,003 - mmseg - INFO - Iter [13450/26000]	lr: 4.827e-05, eta: 4:20:22, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0283, acc_seg: 98.8309, aux.loss_ce: 0.0208, aux.acc_seg: 97.7405, loss: 0.0491
+2026-04-14 09:59:48,231 - mmseg - INFO - Iter [13500/26000]	lr: 4.808e-05, eta: 4:19:18, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0290, acc_seg: 98.8036, aux.loss_ce: 0.0213, aux.acc_seg: 97.6862, loss: 0.0503
+2026-04-14 10:00:47,400 - mmseg - INFO - Iter [13550/26000]	lr: 4.789e-05, eta: 4:18:13, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0313, acc_seg: 98.7152, aux.loss_ce: 0.0234, aux.acc_seg: 97.4511, loss: 0.0547
+2026-04-14 10:01:46,642 - mmseg - INFO - Iter [13600/26000]	lr: 4.770e-05, eta: 4:17:08, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0329, acc_seg: 98.6310, aux.loss_ce: 0.0240, aux.acc_seg: 97.3684, loss: 0.0569
+2026-04-14 10:02:46,457 - mmseg - INFO - Iter [13650/26000]	lr: 4.750e-05, eta: 4:16:04, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0285, acc_seg: 98.8270, aux.loss_ce: 0.0218, aux.acc_seg: 97.6426, loss: 0.0502
+2026-04-14 10:03:46,454 - mmseg - INFO - Iter [13700/26000]	lr: 4.731e-05, eta: 4:15:00, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0295, acc_seg: 98.7779, aux.loss_ce: 0.0217, aux.acc_seg: 97.6401, loss: 0.0512
+2026-04-14 10:04:45,841 - mmseg - INFO - Iter [13750/26000]	lr: 4.712e-05, eta: 4:13:55, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0286, acc_seg: 98.8313, aux.loss_ce: 0.0216, aux.acc_seg: 97.6690, loss: 0.0502
+2026-04-14 10:05:45,930 - mmseg - INFO - Iter [13800/26000]	lr: 4.693e-05, eta: 4:12:51, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0296, acc_seg: 98.7728, aux.loss_ce: 0.0215, aux.acc_seg: 97.6629, loss: 0.0510
+2026-04-14 10:06:45,714 - mmseg - INFO - Iter [13850/26000]	lr: 4.673e-05, eta: 4:11:47, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0283, acc_seg: 98.8380, aux.loss_ce: 0.0213, aux.acc_seg: 97.6953, loss: 0.0496
+2026-04-14 10:07:45,251 - mmseg - INFO - Iter [13900/26000]	lr: 4.654e-05, eta: 4:10:42, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0296, acc_seg: 98.7736, aux.loss_ce: 0.0221, aux.acc_seg: 97.5926, loss: 0.0517
+2026-04-14 10:08:45,803 - mmseg - INFO - Iter [13950/26000]	lr: 4.635e-05, eta: 4:09:39, time: 1.211, data_time: 0.002, memory: 38765, loss_ce: 0.0290, acc_seg: 98.8020, aux.loss_ce: 0.0216, aux.acc_seg: 97.6657, loss: 0.0506
+2026-04-14 10:09:46,073 - mmseg - INFO - Iter [14000/26000]	lr: 4.616e-05, eta: 4:08:35, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0286, acc_seg: 98.8217, aux.loss_ce: 0.0218, aux.acc_seg: 97.6216, loss: 0.0504
+2026-04-14 10:10:46,529 - mmseg - INFO - Iter [14050/26000]	lr: 4.597e-05, eta: 4:07:31, time: 1.209, data_time: 0.002, memory: 38765, loss_ce: 0.0285, acc_seg: 98.8310, aux.loss_ce: 0.0217, aux.acc_seg: 97.6444, loss: 0.0503
+2026-04-14 10:11:47,010 - mmseg - INFO - Iter [14100/26000]	lr: 4.577e-05, eta: 4:06:28, time: 1.210, data_time: 0.002, memory: 38765, loss_ce: 0.0304, acc_seg: 98.7347, aux.loss_ce: 0.0224, aux.acc_seg: 97.5516, loss: 0.0527
+2026-04-14 10:12:46,415 - mmseg - INFO - Iter [14150/26000]	lr: 4.558e-05, eta: 4:05:23, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0321, acc_seg: 98.6772, aux.loss_ce: 0.0238, aux.acc_seg: 97.4071, loss: 0.0559
+2026-04-14 10:13:50,352 - mmseg - INFO - Iter [14200/26000]	lr: 4.539e-05, eta: 4:04:23, time: 1.279, data_time: 0.090, memory: 38765, loss_ce: 0.0290, acc_seg: 98.8034, aux.loss_ce: 0.0220, aux.acc_seg: 97.6069, loss: 0.0510
+2026-04-14 10:14:50,674 - mmseg - INFO - Iter [14250/26000]	lr: 4.520e-05, eta: 4:03:19, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0263, acc_seg: 98.9116, aux.loss_ce: 0.0204, aux.acc_seg: 97.7861, loss: 0.0467
+2026-04-14 10:15:51,130 - mmseg - INFO - 
+--- Dual evaluation at iter 14300 ---
+2026-04-14 10:16:54,456 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.81%       93.22%       92.68%
+building           73.14%       70.83%       69.14%
+---------------------------------------------------
+mIoU               83.48%       82.02%       80.91%
+---------------------------------------------------
+2026-04-14 10:16:54,458 - mmseg - INFO - Iter [14300/26000]	lr: 4.500e-05, eta: 4:02:16, time: 1.209, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8348, val/mIoU_iter: 0.8202, val/mIoU_pseudo: 0.8091, loss_ce: 0.0289, acc_seg: 98.7976, aux.loss_ce: 0.0221, aux.acc_seg: 97.5801, loss: 0.0510
+2026-04-14 10:17:53,710 - mmseg - INFO - Iter [14350/26000]	lr: 4.481e-05, eta: 4:02:03, time: 2.451, data_time: 1.268, memory: 38765, loss_ce: 0.0285, acc_seg: 98.8221, aux.loss_ce: 0.0219, aux.acc_seg: 97.6167, loss: 0.0505
+2026-04-14 10:18:53,309 - mmseg - INFO - Iter [14400/26000]	lr: 4.462e-05, eta: 4:00:58, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0289, acc_seg: 98.8064, aux.loss_ce: 0.0222, aux.acc_seg: 97.5804, loss: 0.0511
+2026-04-14 10:19:53,563 - mmseg - INFO - Iter [14450/26000]	lr: 4.443e-05, eta: 3:59:54, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.9081, aux.loss_ce: 0.0201, aux.acc_seg: 97.8246, loss: 0.0465
+2026-04-14 10:20:52,774 - mmseg - INFO - Iter [14500/26000]	lr: 4.423e-05, eta: 3:58:49, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0299, acc_seg: 98.7628, aux.loss_ce: 0.0220, aux.acc_seg: 97.6224, loss: 0.0519
+2026-04-14 10:21:51,999 - mmseg - INFO - Iter [14550/26000]	lr: 4.404e-05, eta: 3:57:45, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0289, acc_seg: 98.8018, aux.loss_ce: 0.0220, aux.acc_seg: 97.6082, loss: 0.0509
+2026-04-14 10:22:52,291 - mmseg - INFO - Iter [14600/26000]	lr: 4.385e-05, eta: 3:56:41, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0283, acc_seg: 98.8289, aux.loss_ce: 0.0214, aux.acc_seg: 97.6884, loss: 0.0497
+2026-04-14 10:23:51,873 - mmseg - INFO - Iter [14650/26000]	lr: 4.366e-05, eta: 3:55:36, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0281, acc_seg: 98.8427, aux.loss_ce: 0.0217, aux.acc_seg: 97.6429, loss: 0.0498
+2026-04-14 10:24:51,385 - mmseg - INFO - Iter [14700/26000]	lr: 4.347e-05, eta: 3:54:32, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0283, acc_seg: 98.8239, aux.loss_ce: 0.0223, aux.acc_seg: 97.5532, loss: 0.0506
+2026-04-14 10:25:51,770 - mmseg - INFO - Iter [14750/26000]	lr: 4.327e-05, eta: 3:53:28, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0291, acc_seg: 98.7901, aux.loss_ce: 0.0223, aux.acc_seg: 97.5639, loss: 0.0513
+2026-04-14 10:26:51,496 - mmseg - INFO - Iter [14800/26000]	lr: 4.308e-05, eta: 3:52:24, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0303, acc_seg: 98.7394, aux.loss_ce: 0.0231, aux.acc_seg: 97.4798, loss: 0.0534
+2026-04-14 10:27:51,868 - mmseg - INFO - Iter [14850/26000]	lr: 4.289e-05, eta: 3:51:20, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0281, acc_seg: 98.8422, aux.loss_ce: 0.0211, aux.acc_seg: 97.7254, loss: 0.0492
+2026-04-14 10:28:52,368 - mmseg - INFO - Iter [14900/26000]	lr: 4.270e-05, eta: 3:50:17, time: 1.210, data_time: 0.002, memory: 38765, loss_ce: 0.0286, acc_seg: 98.8161, aux.loss_ce: 0.0221, aux.acc_seg: 97.5813, loss: 0.0508
+2026-04-14 10:29:51,901 - mmseg - INFO - Iter [14950/26000]	lr: 4.250e-05, eta: 3:49:13, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0285, acc_seg: 98.8257, aux.loss_ce: 0.0220, aux.acc_seg: 97.6082, loss: 0.0505
+2026-04-14 10:30:51,897 - mmseg - INFO - Iter [15000/26000]	lr: 4.231e-05, eta: 3:48:09, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0291, acc_seg: 98.7944, aux.loss_ce: 0.0225, aux.acc_seg: 97.5439, loss: 0.0516
+2026-04-14 10:31:51,901 - mmseg - INFO - Iter [15050/26000]	lr: 4.212e-05, eta: 3:47:05, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0273, acc_seg: 98.8705, aux.loss_ce: 0.0216, aux.acc_seg: 97.6472, loss: 0.0489
+2026-04-14 10:32:51,178 - mmseg - INFO - Iter [15100/26000]	lr: 4.193e-05, eta: 3:46:01, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0243, acc_seg: 98.9923, aux.loss_ce: 0.0196, aux.acc_seg: 97.8640, loss: 0.0440
+2026-04-14 10:33:51,034 - mmseg - INFO - Iter [15150/26000]	lr: 4.173e-05, eta: 3:44:57, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0270, acc_seg: 98.8802, aux.loss_ce: 0.0215, aux.acc_seg: 97.6478, loss: 0.0485
+2026-04-14 10:34:51,499 - mmseg - INFO - Iter [15200/26000]	lr: 4.154e-05, eta: 3:43:53, time: 1.209, data_time: 0.002, memory: 38765, loss_ce: 0.0293, acc_seg: 98.7894, aux.loss_ce: 0.0230, aux.acc_seg: 97.4974, loss: 0.0523
+2026-04-14 10:35:52,102 - mmseg - INFO - Iter [15250/26000]	lr: 4.135e-05, eta: 3:42:50, time: 1.212, data_time: 0.002, memory: 38765, loss_ce: 0.0275, acc_seg: 98.8579, aux.loss_ce: 0.0212, aux.acc_seg: 97.6875, loss: 0.0486
+2026-04-14 10:36:51,703 - mmseg - INFO - Iter [15300/26000]	lr: 4.116e-05, eta: 3:41:46, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0259, acc_seg: 98.9263, aux.loss_ce: 0.0196, aux.acc_seg: 97.8719, loss: 0.0455
+2026-04-14 10:37:50,506 - mmseg - INFO - Iter [15350/26000]	lr: 4.097e-05, eta: 3:40:41, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0269, acc_seg: 98.8872, aux.loss_ce: 0.0206, aux.acc_seg: 97.7631, loss: 0.0475
+2026-04-14 10:38:49,408 - mmseg - INFO - Iter [15400/26000]	lr: 4.077e-05, eta: 3:39:37, time: 1.178, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.9070, aux.loss_ce: 0.0203, aux.acc_seg: 97.7955, loss: 0.0467
+2026-04-14 10:39:48,546 - mmseg - INFO - Iter [15450/26000]	lr: 4.058e-05, eta: 3:38:33, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0272, acc_seg: 98.8776, aux.loss_ce: 0.0215, aux.acc_seg: 97.6590, loss: 0.0486
+2026-04-14 10:40:54,743 - mmseg - INFO - Iter [15500/26000]	lr: 4.039e-05, eta: 3:37:33, time: 1.324, data_time: 0.119, memory: 38765, loss_ce: 0.0275, acc_seg: 98.8651, aux.loss_ce: 0.0220, aux.acc_seg: 97.5900, loss: 0.0495
+2026-04-14 10:41:54,434 - mmseg - INFO - Iter [15550/26000]	lr: 4.020e-05, eta: 3:36:30, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.9112, aux.loss_ce: 0.0209, aux.acc_seg: 97.7239, loss: 0.0473
+2026-04-14 10:42:53,811 - mmseg - INFO - 
+--- Dual evaluation at iter 15600 ---
+2026-04-14 10:43:58,491 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.82%       93.21%       92.68%
+building           73.48%       71.14%       69.14%
+---------------------------------------------------
+mIoU               83.65%       82.17%       80.91%
+---------------------------------------------------
+2026-04-14 10:43:58,491 - mmseg - INFO - New best mIoU_single: 83.65% at iter 15600. Saving checkpoint...
+2026-04-14 10:44:03,059 - mmseg - INFO - Iter [15600/26000]	lr: 4.000e-05, eta: 3:35:26, time: 1.188, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8365, val/mIoU_iter: 0.8217, val/mIoU_pseudo: 0.8091, loss_ce: 0.0270, acc_seg: 98.8741, aux.loss_ce: 0.0214, aux.acc_seg: 97.6661, loss: 0.0484
+2026-04-14 10:45:02,458 - mmseg - INFO - Iter [15650/26000]	lr: 3.981e-05, eta: 3:35:07, time: 2.573, data_time: 1.386, memory: 38765, loss_ce: 0.0258, acc_seg: 98.9343, aux.loss_ce: 0.0204, aux.acc_seg: 97.7680, loss: 0.0463
+2026-04-14 10:46:01,940 - mmseg - INFO - Iter [15700/26000]	lr: 3.962e-05, eta: 3:34:03, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0231, acc_seg: 99.0518, aux.loss_ce: 0.0189, aux.acc_seg: 97.9628, loss: 0.0420
+2026-04-14 10:47:02,379 - mmseg - INFO - Iter [15750/26000]	lr: 3.943e-05, eta: 3:33:00, time: 1.209, data_time: 0.002, memory: 38765, loss_ce: 0.0270, acc_seg: 98.8723, aux.loss_ce: 0.0211, aux.acc_seg: 97.6884, loss: 0.0481
+2026-04-14 10:48:01,486 - mmseg - INFO - Iter [15800/26000]	lr: 3.923e-05, eta: 3:31:55, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0262, acc_seg: 98.9137, aux.loss_ce: 0.0207, aux.acc_seg: 97.7433, loss: 0.0469
+2026-04-14 10:49:00,360 - mmseg - INFO - Iter [15850/26000]	lr: 3.904e-05, eta: 3:30:51, time: 1.177, data_time: 0.002, memory: 38765, loss_ce: 0.0280, acc_seg: 98.8282, aux.loss_ce: 0.0218, aux.acc_seg: 97.6084, loss: 0.0498
+2026-04-14 10:49:59,401 - mmseg - INFO - Iter [15900/26000]	lr: 3.885e-05, eta: 3:29:46, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0267, acc_seg: 98.8963, aux.loss_ce: 0.0208, aux.acc_seg: 97.7481, loss: 0.0475
+2026-04-14 10:50:58,626 - mmseg - INFO - Iter [15950/26000]	lr: 3.866e-05, eta: 3:28:42, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0260, acc_seg: 98.9181, aux.loss_ce: 0.0208, aux.acc_seg: 97.7262, loss: 0.0468
+2026-04-14 10:51:58,946 - mmseg - INFO - Iter [16000/26000]	lr: 3.847e-05, eta: 3:27:38, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0280, acc_seg: 98.8360, aux.loss_ce: 0.0218, aux.acc_seg: 97.6249, loss: 0.0498
+2026-04-14 10:52:58,428 - mmseg - INFO - Iter [16050/26000]	lr: 3.827e-05, eta: 3:26:34, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0269, acc_seg: 98.8823, aux.loss_ce: 0.0208, aux.acc_seg: 97.7240, loss: 0.0477
+2026-04-14 10:53:57,569 - mmseg - INFO - Iter [16100/26000]	lr: 3.808e-05, eta: 3:25:30, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.9046, aux.loss_ce: 0.0213, aux.acc_seg: 97.6818, loss: 0.0477
+2026-04-14 10:54:56,867 - mmseg - INFO - Iter [16150/26000]	lr: 3.789e-05, eta: 3:24:26, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0244, acc_seg: 98.9847, aux.loss_ce: 0.0195, aux.acc_seg: 97.8659, loss: 0.0439
+2026-04-14 10:55:56,891 - mmseg - INFO - Iter [16200/26000]	lr: 3.770e-05, eta: 3:23:22, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0268, acc_seg: 98.8858, aux.loss_ce: 0.0211, aux.acc_seg: 97.7072, loss: 0.0479
+2026-04-14 10:56:57,316 - mmseg - INFO - Iter [16250/26000]	lr: 3.750e-05, eta: 3:22:19, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0258, acc_seg: 98.9324, aux.loss_ce: 0.0207, aux.acc_seg: 97.7472, loss: 0.0465
+2026-04-14 10:57:56,868 - mmseg - INFO - Iter [16300/26000]	lr: 3.731e-05, eta: 3:21:15, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0278, acc_seg: 98.8418, aux.loss_ce: 0.0223, aux.acc_seg: 97.5598, loss: 0.0501
+2026-04-14 10:58:57,090 - mmseg - INFO - Iter [16350/26000]	lr: 3.712e-05, eta: 3:20:12, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0282, acc_seg: 98.8259, aux.loss_ce: 0.0221, aux.acc_seg: 97.5929, loss: 0.0503
+2026-04-14 10:59:57,236 - mmseg - INFO - Iter [16400/26000]	lr: 3.693e-05, eta: 3:19:08, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0303, acc_seg: 98.7337, aux.loss_ce: 0.0234, aux.acc_seg: 97.4536, loss: 0.0536
+2026-04-14 11:00:57,593 - mmseg - INFO - Iter [16450/26000]	lr: 3.673e-05, eta: 3:18:05, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0246, acc_seg: 98.9831, aux.loss_ce: 0.0203, aux.acc_seg: 97.7692, loss: 0.0449
+2026-04-14 11:01:57,664 - mmseg - INFO - Iter [16500/26000]	lr: 3.654e-05, eta: 3:17:01, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0260, acc_seg: 98.9303, aux.loss_ce: 0.0214, aux.acc_seg: 97.6712, loss: 0.0474
+2026-04-14 11:02:57,808 - mmseg - INFO - Iter [16550/26000]	lr: 3.635e-05, eta: 3:15:58, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0290, acc_seg: 98.7887, aux.loss_ce: 0.0225, aux.acc_seg: 97.5359, loss: 0.0515
+2026-04-14 11:03:57,151 - mmseg - INFO - Iter [16600/26000]	lr: 3.616e-05, eta: 3:14:54, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0249, acc_seg: 98.9702, aux.loss_ce: 0.0204, aux.acc_seg: 97.7808, loss: 0.0453
+2026-04-14 11:04:57,119 - mmseg - INFO - Iter [16650/26000]	lr: 3.597e-05, eta: 3:13:51, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0266, acc_seg: 98.9026, aux.loss_ce: 0.0210, aux.acc_seg: 97.7185, loss: 0.0476
+2026-04-14 11:05:56,625 - mmseg - INFO - Iter [16700/26000]	lr: 3.577e-05, eta: 3:12:47, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0278, acc_seg: 98.8498, aux.loss_ce: 0.0216, aux.acc_seg: 97.6609, loss: 0.0494
+2026-04-14 11:06:55,645 - mmseg - INFO - Iter [16750/26000]	lr: 3.558e-05, eta: 3:11:43, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0248, acc_seg: 98.9660, aux.loss_ce: 0.0203, aux.acc_seg: 97.7795, loss: 0.0451
+2026-04-14 11:07:59,974 - mmseg - INFO - Iter [16800/26000]	lr: 3.539e-05, eta: 3:10:42, time: 1.287, data_time: 0.102, memory: 38765, loss_ce: 0.0259, acc_seg: 98.9210, aux.loss_ce: 0.0207, aux.acc_seg: 97.7355, loss: 0.0467
+2026-04-14 11:09:00,128 - mmseg - INFO - Iter [16850/26000]	lr: 3.520e-05, eta: 3:09:39, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0242, acc_seg: 99.0017, aux.loss_ce: 0.0201, aux.acc_seg: 97.8216, loss: 0.0443
+2026-04-14 11:09:59,013 - mmseg - INFO - 
+--- Dual evaluation at iter 16900 ---
+2026-04-14 11:11:02,098 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.85%       93.26%       92.68%
+building           73.78%       71.34%       69.14%
+---------------------------------------------------
+mIoU               83.82%       82.30%       80.91%
+---------------------------------------------------
+2026-04-14 11:11:02,099 - mmseg - INFO - New best mIoU_single: 83.82% at iter 16900. Saving checkpoint...
+2026-04-14 11:11:06,599 - mmseg - INFO - Iter [16900/26000]	lr: 3.500e-05, eta: 3:08:35, time: 1.178, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8382, val/mIoU_iter: 0.8230, val/mIoU_pseudo: 0.8091, loss_ce: 0.0263, acc_seg: 98.9041, aux.loss_ce: 0.0210, aux.acc_seg: 97.7091, loss: 0.0472
+2026-04-14 11:12:05,314 - mmseg - INFO - Iter [16950/26000]	lr: 3.481e-05, eta: 3:08:07, time: 2.526, data_time: 1.353, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0685, aux.loss_ce: 0.0192, aux.acc_seg: 97.8981, loss: 0.0418
+2026-04-14 11:13:04,291 - mmseg - INFO - Iter [17000/26000]	lr: 3.462e-05, eta: 3:07:03, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0245, acc_seg: 98.9834, aux.loss_ce: 0.0202, aux.acc_seg: 97.8101, loss: 0.0447
+2026-04-14 11:14:03,948 - mmseg - INFO - Iter [17050/26000]	lr: 3.443e-05, eta: 3:05:59, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0270, acc_seg: 98.8776, aux.loss_ce: 0.0220, aux.acc_seg: 97.6060, loss: 0.0490
+2026-04-14 11:15:04,048 - mmseg - INFO - Iter [17100/26000]	lr: 3.423e-05, eta: 3:04:55, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0644, aux.loss_ce: 0.0192, aux.acc_seg: 97.9079, loss: 0.0418
+2026-04-14 11:16:02,731 - mmseg - INFO - Iter [17150/26000]	lr: 3.404e-05, eta: 3:03:51, time: 1.174, data_time: 0.002, memory: 38765, loss_ce: 0.0246, acc_seg: 98.9798, aux.loss_ce: 0.0204, aux.acc_seg: 97.7776, loss: 0.0449
+2026-04-14 11:17:01,381 - mmseg - INFO - Iter [17200/26000]	lr: 3.385e-05, eta: 3:02:47, time: 1.173, data_time: 0.002, memory: 38765, loss_ce: 0.0285, acc_seg: 98.8171, aux.loss_ce: 0.0225, aux.acc_seg: 97.5457, loss: 0.0510
+2026-04-14 11:18:00,191 - mmseg - INFO - Iter [17250/26000]	lr: 3.366e-05, eta: 3:01:43, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0267, acc_seg: 98.8911, aux.loss_ce: 0.0217, aux.acc_seg: 97.6342, loss: 0.0484
+2026-04-14 11:18:59,198 - mmseg - INFO - Iter [17300/26000]	lr: 3.347e-05, eta: 3:00:39, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0263, acc_seg: 98.9122, aux.loss_ce: 0.0215, aux.acc_seg: 97.6666, loss: 0.0478
+2026-04-14 11:19:58,999 - mmseg - INFO - Iter [17350/26000]	lr: 3.327e-05, eta: 2:59:35, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0275, acc_seg: 98.8450, aux.loss_ce: 0.0221, aux.acc_seg: 97.5576, loss: 0.0496
+2026-04-14 11:20:58,917 - mmseg - INFO - Iter [17400/26000]	lr: 3.308e-05, eta: 2:58:32, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0248, acc_seg: 98.9701, aux.loss_ce: 0.0204, aux.acc_seg: 97.7827, loss: 0.0453
+2026-04-14 11:21:57,850 - mmseg - INFO - Iter [17450/26000]	lr: 3.289e-05, eta: 2:57:28, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0265, acc_seg: 98.8950, aux.loss_ce: 0.0215, aux.acc_seg: 97.6408, loss: 0.0481
+2026-04-14 11:22:56,887 - mmseg - INFO - Iter [17500/26000]	lr: 3.270e-05, eta: 2:56:24, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.9013, aux.loss_ce: 0.0217, aux.acc_seg: 97.6329, loss: 0.0481
+2026-04-14 11:23:56,309 - mmseg - INFO - Iter [17550/26000]	lr: 3.250e-05, eta: 2:55:21, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0269, acc_seg: 98.8806, aux.loss_ce: 0.0214, aux.acc_seg: 97.6747, loss: 0.0483
+2026-04-14 11:24:56,651 - mmseg - INFO - Iter [17600/26000]	lr: 3.231e-05, eta: 2:54:17, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0242, acc_seg: 98.9968, aux.loss_ce: 0.0194, aux.acc_seg: 97.8956, loss: 0.0435
+2026-04-14 11:25:55,726 - mmseg - INFO - Iter [17650/26000]	lr: 3.212e-05, eta: 2:53:14, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0632, aux.loss_ce: 0.0186, aux.acc_seg: 97.9749, loss: 0.0412
+2026-04-14 11:26:54,740 - mmseg - INFO - Iter [17700/26000]	lr: 3.193e-05, eta: 2:52:10, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0239, aux.loss_ce: 0.0194, aux.acc_seg: 97.8787, loss: 0.0429
+2026-04-14 11:27:54,008 - mmseg - INFO - Iter [17750/26000]	lr: 3.173e-05, eta: 2:51:06, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0274, acc_seg: 98.8601, aux.loss_ce: 0.0221, aux.acc_seg: 97.5761, loss: 0.0495
+2026-04-14 11:28:54,368 - mmseg - INFO - Iter [17800/26000]	lr: 3.154e-05, eta: 2:50:03, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0244, acc_seg: 98.9822, aux.loss_ce: 0.0198, aux.acc_seg: 97.8318, loss: 0.0443
+2026-04-14 11:29:54,556 - mmseg - INFO - Iter [17850/26000]	lr: 3.135e-05, eta: 2:49:00, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0236, acc_seg: 99.0194, aux.loss_ce: 0.0196, aux.acc_seg: 97.8588, loss: 0.0432
+2026-04-14 11:30:55,085 - mmseg - INFO - Iter [17900/26000]	lr: 3.116e-05, eta: 2:47:57, time: 1.211, data_time: 0.002, memory: 38765, loss_ce: 0.0241, acc_seg: 99.0036, aux.loss_ce: 0.0197, aux.acc_seg: 97.8519, loss: 0.0437
+2026-04-14 11:31:55,270 - mmseg - INFO - Iter [17950/26000]	lr: 3.097e-05, eta: 2:46:54, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0273, acc_seg: 98.8591, aux.loss_ce: 0.0219, aux.acc_seg: 97.5966, loss: 0.0492
+2026-04-14 11:32:54,800 - mmseg - INFO - Iter [18000/26000]	lr: 3.077e-05, eta: 2:45:51, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0283, acc_seg: 98.8243, aux.loss_ce: 0.0225, aux.acc_seg: 97.5343, loss: 0.0508
+2026-04-14 11:33:55,083 - mmseg - INFO - Iter [18050/26000]	lr: 3.058e-05, eta: 2:44:48, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0266, acc_seg: 98.8766, aux.loss_ce: 0.0210, aux.acc_seg: 97.6833, loss: 0.0476
+2026-04-14 11:34:58,839 - mmseg - INFO - Iter [18100/26000]	lr: 3.039e-05, eta: 2:43:46, time: 1.275, data_time: 0.087, memory: 38765, loss_ce: 0.0239, acc_seg: 99.0064, aux.loss_ce: 0.0201, aux.acc_seg: 97.7951, loss: 0.0440
+2026-04-14 11:35:58,896 - mmseg - INFO - Iter [18150/26000]	lr: 3.020e-05, eta: 2:42:43, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0257, aux.loss_ce: 0.0197, aux.acc_seg: 97.8482, loss: 0.0432
+2026-04-14 11:36:58,542 - mmseg - INFO - 
+--- Dual evaluation at iter 18200 ---
+2026-04-14 11:38:03,109 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.87%       93.26%       92.68%
+building           73.60%       71.07%       69.14%
+---------------------------------------------------
+mIoU               83.73%       82.17%       80.91%
+---------------------------------------------------
+2026-04-14 11:38:03,111 - mmseg - INFO - Iter [18200/26000]	lr: 3.000e-05, eta: 2:41:40, time: 1.193, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8373, val/mIoU_iter: 0.8217, val/mIoU_pseudo: 0.8091, loss_ce: 0.0244, acc_seg: 98.9768, aux.loss_ce: 0.0204, aux.acc_seg: 97.7542, loss: 0.0449
+2026-04-14 11:39:02,375 - mmseg - INFO - Iter [18250/26000]	lr: 2.981e-05, eta: 2:41:04, time: 2.477, data_time: 1.293, memory: 38765, loss_ce: 0.0272, acc_seg: 98.8671, aux.loss_ce: 0.0220, aux.acc_seg: 97.5941, loss: 0.0492
+2026-04-14 11:40:02,182 - mmseg - INFO - Iter [18300/26000]	lr: 2.962e-05, eta: 2:40:00, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0246, acc_seg: 98.9697, aux.loss_ce: 0.0200, aux.acc_seg: 97.8099, loss: 0.0446
+2026-04-14 11:41:01,765 - mmseg - INFO - Iter [18350/26000]	lr: 2.943e-05, eta: 2:38:57, time: 1.192, data_time: 0.002, memory: 38765, loss_ce: 0.0244, acc_seg: 98.9858, aux.loss_ce: 0.0199, aux.acc_seg: 97.8261, loss: 0.0443
+2026-04-14 11:42:00,747 - mmseg - INFO - Iter [18400/26000]	lr: 2.923e-05, eta: 2:37:53, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0265, acc_seg: 98.8909, aux.loss_ce: 0.0217, aux.acc_seg: 97.6225, loss: 0.0482
+2026-04-14 11:42:59,859 - mmseg - INFO - Iter [18450/26000]	lr: 2.904e-05, eta: 2:36:49, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0246, acc_seg: 98.9775, aux.loss_ce: 0.0208, aux.acc_seg: 97.7247, loss: 0.0454
+2026-04-14 11:43:59,358 - mmseg - INFO - Iter [18500/26000]	lr: 2.885e-05, eta: 2:35:46, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0232, acc_seg: 99.0354, aux.loss_ce: 0.0197, aux.acc_seg: 97.8402, loss: 0.0430
+2026-04-14 11:44:59,355 - mmseg - INFO - Iter [18550/26000]	lr: 2.866e-05, eta: 2:34:43, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0228, acc_seg: 99.0530, aux.loss_ce: 0.0190, aux.acc_seg: 97.9367, loss: 0.0419
+2026-04-14 11:45:59,263 - mmseg - INFO - Iter [18600/26000]	lr: 2.847e-05, eta: 2:33:39, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0253, acc_seg: 98.9469, aux.loss_ce: 0.0209, aux.acc_seg: 97.7251, loss: 0.0462
+2026-04-14 11:46:59,265 - mmseg - INFO - Iter [18650/26000]	lr: 2.827e-05, eta: 2:32:36, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0240, acc_seg: 99.0038, aux.loss_ce: 0.0203, aux.acc_seg: 97.7810, loss: 0.0443
+2026-04-14 11:47:58,522 - mmseg - INFO - Iter [18700/26000]	lr: 2.808e-05, eta: 2:31:33, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0242, acc_seg: 98.9933, aux.loss_ce: 0.0203, aux.acc_seg: 97.7861, loss: 0.0444
+2026-04-14 11:48:58,330 - mmseg - INFO - Iter [18750/26000]	lr: 2.789e-05, eta: 2:30:30, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0202, aux.loss_ce: 0.0196, aux.acc_seg: 97.8642, loss: 0.0431
+2026-04-14 11:49:57,874 - mmseg - INFO - Iter [18800/26000]	lr: 2.770e-05, eta: 2:29:26, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0232, acc_seg: 99.0362, aux.loss_ce: 0.0198, aux.acc_seg: 97.8379, loss: 0.0430
+2026-04-14 11:50:56,684 - mmseg - INFO - Iter [18850/26000]	lr: 2.750e-05, eta: 2:28:23, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0258, acc_seg: 98.9172, aux.loss_ce: 0.0215, aux.acc_seg: 97.6376, loss: 0.0473
+2026-04-14 11:51:55,615 - mmseg - INFO - Iter [18900/26000]	lr: 2.731e-05, eta: 2:27:19, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0260, acc_seg: 98.9131, aux.loss_ce: 0.0214, aux.acc_seg: 97.6540, loss: 0.0474
+2026-04-14 11:52:54,856 - mmseg - INFO - Iter [18950/26000]	lr: 2.712e-05, eta: 2:26:16, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0243, acc_seg: 98.9941, aux.loss_ce: 0.0204, aux.acc_seg: 97.7698, loss: 0.0447
+2026-04-14 11:53:54,925 - mmseg - INFO - Iter [19000/26000]	lr: 2.693e-05, eta: 2:25:13, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0251, acc_seg: 98.9562, aux.loss_ce: 0.0211, aux.acc_seg: 97.6980, loss: 0.0461
+2026-04-14 11:54:53,935 - mmseg - INFO - Iter [19050/26000]	lr: 2.673e-05, eta: 2:24:09, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0276, acc_seg: 98.8398, aux.loss_ce: 0.0220, aux.acc_seg: 97.5779, loss: 0.0496
+2026-04-14 11:55:52,732 - mmseg - INFO - Iter [19100/26000]	lr: 2.654e-05, eta: 2:23:06, time: 1.176, data_time: 0.002, memory: 38765, loss_ce: 0.0228, acc_seg: 99.0527, aux.loss_ce: 0.0195, aux.acc_seg: 97.8649, loss: 0.0422
+2026-04-14 11:56:51,682 - mmseg - INFO - Iter [19150/26000]	lr: 2.635e-05, eta: 2:22:02, time: 1.179, data_time: 0.002, memory: 38765, loss_ce: 0.0243, acc_seg: 98.9885, aux.loss_ce: 0.0208, aux.acc_seg: 97.7130, loss: 0.0452
+2026-04-14 11:57:51,080 - mmseg - INFO - Iter [19200/26000]	lr: 2.616e-05, eta: 2:20:59, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0232, acc_seg: 99.0286, aux.loss_ce: 0.0198, aux.acc_seg: 97.8264, loss: 0.0430
+2026-04-14 11:58:51,113 - mmseg - INFO - Iter [19250/26000]	lr: 2.597e-05, eta: 2:19:56, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0252, acc_seg: 98.9463, aux.loss_ce: 0.0210, aux.acc_seg: 97.7008, loss: 0.0462
+2026-04-14 11:59:50,163 - mmseg - INFO - Iter [19300/26000]	lr: 2.577e-05, eta: 2:18:53, time: 1.181, data_time: 0.002, memory: 38765, loss_ce: 0.0250, acc_seg: 98.9557, aux.loss_ce: 0.0206, aux.acc_seg: 97.7440, loss: 0.0457
+2026-04-14 12:00:49,186 - mmseg - INFO - Iter [19350/26000]	lr: 2.558e-05, eta: 2:17:50, time: 1.180, data_time: 0.002, memory: 38765, loss_ce: 0.0240, acc_seg: 99.0025, aux.loss_ce: 0.0198, aux.acc_seg: 97.8326, loss: 0.0438
+2026-04-14 12:01:52,633 - mmseg - INFO - Iter [19400/26000]	lr: 2.539e-05, eta: 2:16:48, time: 1.269, data_time: 0.084, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0551, aux.loss_ce: 0.0196, aux.acc_seg: 97.8635, loss: 0.0422
+2026-04-14 12:02:52,853 - mmseg - INFO - Iter [19450/26000]	lr: 2.520e-05, eta: 2:15:45, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0582, aux.loss_ce: 0.0195, aux.acc_seg: 97.8611, loss: 0.0422
+2026-04-14 12:03:52,964 - mmseg - INFO - 
+--- Dual evaluation at iter 19500 ---
+2026-04-14 12:04:55,997 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.77%       93.21%       92.68%
+building           73.52%       71.22%       69.14%
+---------------------------------------------------
+mIoU               83.64%       82.22%       80.91%
+---------------------------------------------------
+2026-04-14 12:04:55,999 - mmseg - INFO - Iter [19500/26000]	lr: 2.500e-05, eta: 2:14:42, time: 1.202, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8364, val/mIoU_iter: 0.8222, val/mIoU_pseudo: 0.8091, loss_ce: 0.0234, acc_seg: 99.0257, aux.loss_ce: 0.0199, aux.acc_seg: 97.8339, loss: 0.0433
+2026-04-14 12:05:54,980 - mmseg - INFO - Iter [19550/26000]	lr: 2.481e-05, eta: 2:14:00, time: 2.440, data_time: 1.262, memory: 38765, loss_ce: 0.0224, acc_seg: 99.0702, aux.loss_ce: 0.0191, aux.acc_seg: 97.9182, loss: 0.0415
+2026-04-14 12:06:54,109 - mmseg - INFO - Iter [19600/26000]	lr: 2.462e-05, eta: 2:12:56, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0190, acc_seg: 99.2092, aux.loss_ce: 0.0172, aux.acc_seg: 98.1212, loss: 0.0362
+2026-04-14 12:07:53,827 - mmseg - INFO - Iter [19650/26000]	lr: 2.443e-05, eta: 2:11:53, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0254, acc_seg: 98.9337, aux.loss_ce: 0.0210, aux.acc_seg: 97.7003, loss: 0.0465
+2026-04-14 12:08:53,983 - mmseg - INFO - Iter [19700/26000]	lr: 2.423e-05, eta: 2:10:50, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0252, acc_seg: 98.9481, aux.loss_ce: 0.0220, aux.acc_seg: 97.5883, loss: 0.0472
+2026-04-14 12:09:54,601 - mmseg - INFO - Iter [19750/26000]	lr: 2.404e-05, eta: 2:09:47, time: 1.212, data_time: 0.002, memory: 38765, loss_ce: 0.0246, acc_seg: 98.9732, aux.loss_ce: 0.0210, aux.acc_seg: 97.7111, loss: 0.0456
+2026-04-14 12:10:54,537 - mmseg - INFO - Iter [19800/26000]	lr: 2.385e-05, eta: 2:08:44, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0234, acc_seg: 99.0176, aux.loss_ce: 0.0200, aux.acc_seg: 97.8009, loss: 0.0434
+2026-04-14 12:11:54,508 - mmseg - INFO - Iter [19850/26000]	lr: 2.366e-05, eta: 2:07:41, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0249, acc_seg: 98.9578, aux.loss_ce: 0.0204, aux.acc_seg: 97.7669, loss: 0.0453
+2026-04-14 12:12:53,612 - mmseg - INFO - Iter [19900/26000]	lr: 2.347e-05, eta: 2:06:38, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0254, acc_seg: 98.9336, aux.loss_ce: 0.0212, aux.acc_seg: 97.6770, loss: 0.0467
+2026-04-14 12:13:52,906 - mmseg - INFO - Iter [19950/26000]	lr: 2.327e-05, eta: 2:05:35, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0250, acc_seg: 98.9547, aux.loss_ce: 0.0206, aux.acc_seg: 97.7373, loss: 0.0456
+2026-04-14 12:14:53,369 - mmseg - INFO - Iter [20000/26000]	lr: 2.308e-05, eta: 2:04:32, time: 1.209, data_time: 0.002, memory: 38765, loss_ce: 0.0219, acc_seg: 99.0899, aux.loss_ce: 0.0194, aux.acc_seg: 97.8762, loss: 0.0413
+2026-04-14 12:15:52,775 - mmseg - INFO - Iter [20050/26000]	lr: 2.289e-05, eta: 2:03:29, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0224, acc_seg: 99.0647, aux.loss_ce: 0.0188, aux.acc_seg: 97.9405, loss: 0.0412
+2026-04-14 12:16:52,347 - mmseg - INFO - Iter [20100/26000]	lr: 2.270e-05, eta: 2:02:26, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0572, aux.loss_ce: 0.0190, aux.acc_seg: 97.9219, loss: 0.0416
+2026-04-14 12:17:52,428 - mmseg - INFO - Iter [20150/26000]	lr: 2.250e-05, eta: 2:01:23, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0232, acc_seg: 99.0330, aux.loss_ce: 0.0201, aux.acc_seg: 97.8045, loss: 0.0433
+2026-04-14 12:18:51,669 - mmseg - INFO - Iter [20200/26000]	lr: 2.231e-05, eta: 2:00:20, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0248, acc_seg: 98.9683, aux.loss_ce: 0.0214, aux.acc_seg: 97.6652, loss: 0.0462
+2026-04-14 12:19:51,011 - mmseg - INFO - Iter [20250/26000]	lr: 2.212e-05, eta: 1:59:17, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0224, acc_seg: 99.0719, aux.loss_ce: 0.0193, aux.acc_seg: 97.9013, loss: 0.0417
+2026-04-14 12:20:51,191 - mmseg - INFO - Iter [20300/26000]	lr: 2.193e-05, eta: 1:58:14, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0264, acc_seg: 98.8913, aux.loss_ce: 0.0221, aux.acc_seg: 97.5652, loss: 0.0485
+2026-04-14 12:21:50,956 - mmseg - INFO - Iter [20350/26000]	lr: 2.173e-05, eta: 1:57:11, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0236, acc_seg: 99.0121, aux.loss_ce: 0.0200, aux.acc_seg: 97.8159, loss: 0.0436
+2026-04-14 12:22:51,284 - mmseg - INFO - Iter [20400/26000]	lr: 2.154e-05, eta: 1:56:08, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0229, acc_seg: 99.0402, aux.loss_ce: 0.0199, aux.acc_seg: 97.8156, loss: 0.0428
+2026-04-14 12:23:50,826 - mmseg - INFO - Iter [20450/26000]	lr: 2.135e-05, eta: 1:55:05, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0216, acc_seg: 99.1034, aux.loss_ce: 0.0189, aux.acc_seg: 97.9323, loss: 0.0404
+2026-04-14 12:24:49,957 - mmseg - INFO - Iter [20500/26000]	lr: 2.116e-05, eta: 1:54:02, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0261, acc_seg: 98.8972, aux.loss_ce: 0.0214, aux.acc_seg: 97.6401, loss: 0.0475
+2026-04-14 12:25:49,604 - mmseg - INFO - Iter [20550/26000]	lr: 2.097e-05, eta: 1:52:59, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0240, acc_seg: 98.9988, aux.loss_ce: 0.0207, aux.acc_seg: 97.7317, loss: 0.0447
+2026-04-14 12:26:49,431 - mmseg - INFO - Iter [20600/26000]	lr: 2.077e-05, eta: 1:51:57, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0248, acc_seg: 98.9613, aux.loss_ce: 0.0213, aux.acc_seg: 97.6598, loss: 0.0460
+2026-04-14 12:27:53,457 - mmseg - INFO - Iter [20650/26000]	lr: 2.058e-05, eta: 1:50:55, time: 1.281, data_time: 0.097, memory: 38765, loss_ce: 0.0252, acc_seg: 98.9451, aux.loss_ce: 0.0211, aux.acc_seg: 97.6842, loss: 0.0463
+2026-04-14 12:28:52,708 - mmseg - INFO - Iter [20700/26000]	lr: 2.039e-05, eta: 1:49:52, time: 1.185, data_time: 0.002, memory: 38765, loss_ce: 0.0229, acc_seg: 99.0460, aux.loss_ce: 0.0195, aux.acc_seg: 97.8567, loss: 0.0424
+2026-04-14 12:29:52,957 - mmseg - INFO - Iter [20750/26000]	lr: 2.020e-05, eta: 1:48:49, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1361, aux.loss_ce: 0.0187, aux.acc_seg: 97.9550, loss: 0.0394
+2026-04-14 12:30:52,298 - mmseg - INFO - 
+--- Dual evaluation at iter 20800 ---
+2026-04-14 12:31:54,895 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.74%       93.25%       92.68%
+building           73.62%       71.64%       69.14%
+---------------------------------------------------
+mIoU               83.68%       82.45%       80.91%
+---------------------------------------------------
+2026-04-14 12:31:54,897 - mmseg - INFO - Iter [20800/26000]	lr: 2.000e-05, eta: 1:47:46, time: 1.187, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8368, val/mIoU_iter: 0.8245, val/mIoU_pseudo: 0.8091, loss_ce: 0.0227, acc_seg: 99.0540, aux.loss_ce: 0.0202, aux.acc_seg: 97.7792, loss: 0.0430
+2026-04-14 12:32:54,856 - mmseg - INFO - Iter [20850/26000]	lr: 1.981e-05, eta: 1:46:59, time: 2.451, data_time: 1.253, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1331, aux.loss_ce: 0.0184, aux.acc_seg: 98.0017, loss: 0.0391
+2026-04-14 12:33:54,773 - mmseg - INFO - Iter [20900/26000]	lr: 1.962e-05, eta: 1:45:56, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0255, acc_seg: 98.9239, aux.loss_ce: 0.0215, aux.acc_seg: 97.6240, loss: 0.0471
+2026-04-14 12:34:54,857 - mmseg - INFO - Iter [20950/26000]	lr: 1.943e-05, eta: 1:44:53, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0234, acc_seg: 99.0191, aux.loss_ce: 0.0200, aux.acc_seg: 97.7943, loss: 0.0434
+2026-04-14 12:35:55,092 - mmseg - INFO - Iter [21000/26000]	lr: 1.923e-05, eta: 1:43:51, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0209, acc_seg: 99.1262, aux.loss_ce: 0.0186, aux.acc_seg: 97.9708, loss: 0.0395
+2026-04-14 12:36:55,323 - mmseg - INFO - Iter [21050/26000]	lr: 1.904e-05, eta: 1:42:48, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0247, acc_seg: 98.9710, aux.loss_ce: 0.0212, aux.acc_seg: 97.6890, loss: 0.0459
+2026-04-14 12:37:55,640 - mmseg - INFO - Iter [21100/26000]	lr: 1.885e-05, eta: 1:41:45, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0229, acc_seg: 99.0388, aux.loss_ce: 0.0201, aux.acc_seg: 97.7912, loss: 0.0430
+2026-04-14 12:38:55,381 - mmseg - INFO - Iter [21150/26000]	lr: 1.866e-05, eta: 1:40:42, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0228, acc_seg: 99.0464, aux.loss_ce: 0.0199, aux.acc_seg: 97.8194, loss: 0.0427
+2026-04-14 12:39:55,467 - mmseg - INFO - Iter [21200/26000]	lr: 1.847e-05, eta: 1:39:39, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0211, acc_seg: 99.1219, aux.loss_ce: 0.0192, aux.acc_seg: 97.8958, loss: 0.0403
+2026-04-14 12:40:54,853 - mmseg - INFO - Iter [21250/26000]	lr: 1.827e-05, eta: 1:38:36, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0210, acc_seg: 99.1249, aux.loss_ce: 0.0185, aux.acc_seg: 97.9881, loss: 0.0395
+2026-04-14 12:41:54,423 - mmseg - INFO - Iter [21300/26000]	lr: 1.808e-05, eta: 1:37:33, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0226, acc_seg: 99.0659, aux.loss_ce: 0.0200, aux.acc_seg: 97.8200, loss: 0.0426
+2026-04-14 12:42:54,823 - mmseg - INFO - Iter [21350/26000]	lr: 1.789e-05, eta: 1:36:31, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0254, acc_seg: 98.9342, aux.loss_ce: 0.0215, aux.acc_seg: 97.6381, loss: 0.0469
+2026-04-14 12:43:54,936 - mmseg - INFO - Iter [21400/26000]	lr: 1.770e-05, eta: 1:35:28, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0614, aux.loss_ce: 0.0202, aux.acc_seg: 97.7815, loss: 0.0427
+2026-04-14 12:44:55,074 - mmseg - INFO - Iter [21450/26000]	lr: 1.750e-05, eta: 1:34:25, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0211, acc_seg: 99.1267, aux.loss_ce: 0.0189, aux.acc_seg: 97.9409, loss: 0.0400
+2026-04-14 12:45:54,408 - mmseg - INFO - Iter [21500/26000]	lr: 1.731e-05, eta: 1:33:22, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0578, aux.loss_ce: 0.0195, aux.acc_seg: 97.8704, loss: 0.0420
+2026-04-14 12:46:53,797 - mmseg - INFO - Iter [21550/26000]	lr: 1.712e-05, eta: 1:32:20, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0222, acc_seg: 99.0655, aux.loss_ce: 0.0195, aux.acc_seg: 97.8519, loss: 0.0417
+2026-04-14 12:47:54,036 - mmseg - INFO - Iter [21600/26000]	lr: 1.693e-05, eta: 1:31:17, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0238, acc_seg: 99.0004, aux.loss_ce: 0.0208, aux.acc_seg: 97.7057, loss: 0.0447
+2026-04-14 12:48:53,445 - mmseg - INFO - Iter [21650/26000]	lr: 1.673e-05, eta: 1:30:14, time: 1.188, data_time: 0.002, memory: 38765, loss_ce: 0.0240, acc_seg: 98.9956, aux.loss_ce: 0.0208, aux.acc_seg: 97.7180, loss: 0.0448
+2026-04-14 12:49:52,663 - mmseg - INFO - Iter [21700/26000]	lr: 1.654e-05, eta: 1:29:11, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0231, acc_seg: 99.0280, aux.loss_ce: 0.0200, aux.acc_seg: 97.7969, loss: 0.0432
+2026-04-14 12:50:52,196 - mmseg - INFO - Iter [21750/26000]	lr: 1.635e-05, eta: 1:28:09, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0233, acc_seg: 99.0233, aux.loss_ce: 0.0201, aux.acc_seg: 97.7891, loss: 0.0434
+2026-04-14 12:51:52,299 - mmseg - INFO - Iter [21800/26000]	lr: 1.616e-05, eta: 1:27:06, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0236, acc_seg: 99.0103, aux.loss_ce: 0.0202, aux.acc_seg: 97.7828, loss: 0.0438
+2026-04-14 12:52:52,461 - mmseg - INFO - Iter [21850/26000]	lr: 1.597e-05, eta: 1:26:03, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0227, acc_seg: 99.0560, aux.loss_ce: 0.0200, aux.acc_seg: 97.8164, loss: 0.0427
+2026-04-14 12:53:52,545 - mmseg - INFO - Iter [21900/26000]	lr: 1.577e-05, eta: 1:25:01, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0241, acc_seg: 98.9867, aux.loss_ce: 0.0210, aux.acc_seg: 97.6882, loss: 0.0452
+2026-04-14 12:54:57,460 - mmseg - INFO - Iter [21950/26000]	lr: 1.558e-05, eta: 1:23:59, time: 1.298, data_time: 0.101, memory: 38765, loss_ce: 0.0228, acc_seg: 99.0460, aux.loss_ce: 0.0198, aux.acc_seg: 97.8393, loss: 0.0425
+2026-04-14 12:55:57,477 - mmseg - INFO - Iter [22000/26000]	lr: 1.539e-05, eta: 1:22:56, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0219, acc_seg: 99.0876, aux.loss_ce: 0.0200, aux.acc_seg: 97.8157, loss: 0.0418
+2026-04-14 12:56:57,602 - mmseg - INFO - Iter [22050/26000]	lr: 1.520e-05, eta: 1:21:54, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0232, acc_seg: 99.0271, aux.loss_ce: 0.0202, aux.acc_seg: 97.7829, loss: 0.0434
+2026-04-14 12:57:57,452 - mmseg - INFO - 
+--- Dual evaluation at iter 22100 ---
+2026-04-14 12:59:00,415 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.85%       93.28%       92.68%
+building           73.49%       71.35%       69.14%
+---------------------------------------------------
+mIoU               83.67%       82.32%       80.91%
+---------------------------------------------------
+2026-04-14 12:59:00,417 - mmseg - INFO - Iter [22100/26000]	lr: 1.500e-05, eta: 1:20:51, time: 1.197, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8367, val/mIoU_iter: 0.8232, val/mIoU_pseudo: 0.8091, loss_ce: 0.0212, acc_seg: 99.1122, aux.loss_ce: 0.0191, aux.acc_seg: 97.9001, loss: 0.0403
+2026-04-14 13:00:00,331 - mmseg - INFO - Iter [22150/26000]	lr: 1.481e-05, eta: 1:19:59, time: 2.457, data_time: 1.261, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1140, aux.loss_ce: 0.0193, aux.acc_seg: 97.8751, loss: 0.0405
+2026-04-14 13:00:59,864 - mmseg - INFO - Iter [22200/26000]	lr: 1.462e-05, eta: 1:18:57, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0231, acc_seg: 99.0233, aux.loss_ce: 0.0204, aux.acc_seg: 97.7408, loss: 0.0435
+2026-04-14 13:01:59,926 - mmseg - INFO - Iter [22250/26000]	lr: 1.443e-05, eta: 1:17:54, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0125, aux.loss_ce: 0.0209, aux.acc_seg: 97.6999, loss: 0.0444
+2026-04-14 13:03:00,051 - mmseg - INFO - Iter [22300/26000]	lr: 1.423e-05, eta: 1:16:51, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0219, acc_seg: 99.0808, aux.loss_ce: 0.0195, aux.acc_seg: 97.8569, loss: 0.0414
+2026-04-14 13:04:00,046 - mmseg - INFO - Iter [22350/26000]	lr: 1.404e-05, eta: 1:15:49, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0206, acc_seg: 99.1427, aux.loss_ce: 0.0184, aux.acc_seg: 97.9966, loss: 0.0390
+2026-04-14 13:05:00,050 - mmseg - INFO - Iter [22400/26000]	lr: 1.385e-05, eta: 1:14:46, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0211, acc_seg: 99.1169, aux.loss_ce: 0.0192, aux.acc_seg: 97.8915, loss: 0.0402
+2026-04-14 13:06:00,152 - mmseg - INFO - Iter [22450/26000]	lr: 1.366e-05, eta: 1:13:43, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0214, acc_seg: 99.1129, aux.loss_ce: 0.0191, aux.acc_seg: 97.9314, loss: 0.0405
+2026-04-14 13:06:59,804 - mmseg - INFO - Iter [22500/26000]	lr: 1.347e-05, eta: 1:12:40, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0248, acc_seg: 98.9601, aux.loss_ce: 0.0217, aux.acc_seg: 97.6071, loss: 0.0465
+2026-04-14 13:07:59,996 - mmseg - INFO - Iter [22550/26000]	lr: 1.327e-05, eta: 1:11:38, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1104, aux.loss_ce: 0.0188, aux.acc_seg: 97.9396, loss: 0.0401
+2026-04-14 13:08:59,511 - mmseg - INFO - Iter [22600/26000]	lr: 1.308e-05, eta: 1:10:35, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0224, acc_seg: 99.0599, aux.loss_ce: 0.0196, aux.acc_seg: 97.8485, loss: 0.0419
+2026-04-14 13:09:58,634 - mmseg - INFO - Iter [22650/26000]	lr: 1.289e-05, eta: 1:09:32, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0181, aux.loss_ce: 0.0207, aux.acc_seg: 97.7370, loss: 0.0442
+2026-04-14 13:10:57,828 - mmseg - INFO - Iter [22700/26000]	lr: 1.270e-05, eta: 1:08:30, time: 1.184, data_time: 0.002, memory: 38765, loss_ce: 0.0219, acc_seg: 99.0829, aux.loss_ce: 0.0196, aux.acc_seg: 97.8548, loss: 0.0415
+2026-04-14 13:11:58,026 - mmseg - INFO - Iter [22750/26000]	lr: 1.250e-05, eta: 1:07:27, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0217, acc_seg: 99.0954, aux.loss_ce: 0.0195, aux.acc_seg: 97.8643, loss: 0.0411
+2026-04-14 13:12:57,325 - mmseg - INFO - Iter [22800/26000]	lr: 1.231e-05, eta: 1:06:24, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0587, aux.loss_ce: 0.0199, aux.acc_seg: 97.8179, loss: 0.0424
+2026-04-14 13:13:56,451 - mmseg - INFO - Iter [22850/26000]	lr: 1.212e-05, eta: 1:05:22, time: 1.182, data_time: 0.002, memory: 38765, loss_ce: 0.0221, acc_seg: 99.0763, aux.loss_ce: 0.0197, aux.acc_seg: 97.8374, loss: 0.0417
+2026-04-14 13:14:55,748 - mmseg - INFO - Iter [22900/26000]	lr: 1.193e-05, eta: 1:04:19, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0203, acc_seg: 99.1570, aux.loss_ce: 0.0191, aux.acc_seg: 97.9126, loss: 0.0394
+2026-04-14 13:15:55,848 - mmseg - INFO - Iter [22950/26000]	lr: 1.173e-05, eta: 1:03:17, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0213, acc_seg: 99.1141, aux.loss_ce: 0.0191, aux.acc_seg: 97.9107, loss: 0.0404
+2026-04-14 13:16:55,293 - mmseg - INFO - Iter [23000/26000]	lr: 1.154e-05, eta: 1:02:14, time: 1.189, data_time: 0.002, memory: 38765, loss_ce: 0.0230, acc_seg: 99.0369, aux.loss_ce: 0.0202, aux.acc_seg: 97.7820, loss: 0.0433
+2026-04-14 13:17:54,644 - mmseg - INFO - Iter [23050/26000]	lr: 1.135e-05, eta: 1:01:11, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0228, acc_seg: 99.0454, aux.loss_ce: 0.0204, aux.acc_seg: 97.7553, loss: 0.0431
+2026-04-14 13:18:54,709 - mmseg - INFO - Iter [23100/26000]	lr: 1.116e-05, eta: 1:00:09, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1143, aux.loss_ce: 0.0188, aux.acc_seg: 97.9417, loss: 0.0400
+2026-04-14 13:19:54,081 - mmseg - INFO - Iter [23150/26000]	lr: 1.097e-05, eta: 0:59:06, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0234, acc_seg: 99.0128, aux.loss_ce: 0.0205, aux.acc_seg: 97.7326, loss: 0.0440
+2026-04-14 13:20:53,898 - mmseg - INFO - Iter [23200/26000]	lr: 1.077e-05, eta: 0:58:04, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0552, aux.loss_ce: 0.0195, aux.acc_seg: 97.8577, loss: 0.0420
+2026-04-14 13:21:58,109 - mmseg - INFO - Iter [23250/26000]	lr: 1.058e-05, eta: 0:57:02, time: 1.284, data_time: 0.080, memory: 38765, loss_ce: 0.0221, acc_seg: 99.0720, aux.loss_ce: 0.0196, aux.acc_seg: 97.8510, loss: 0.0417
+2026-04-14 13:22:58,436 - mmseg - INFO - Iter [23300/26000]	lr: 1.039e-05, eta: 0:55:59, time: 1.207, data_time: 0.002, memory: 38765, loss_ce: 0.0224, acc_seg: 99.0579, aux.loss_ce: 0.0201, aux.acc_seg: 97.7726, loss: 0.0425
+2026-04-14 13:23:58,370 - mmseg - INFO - Iter [23350/26000]	lr: 1.020e-05, eta: 0:54:57, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0199, acc_seg: 99.1654, aux.loss_ce: 0.0185, aux.acc_seg: 97.9792, loss: 0.0384
+2026-04-14 13:24:58,618 - mmseg - INFO - 
+--- Dual evaluation at iter 23400 ---
+2026-04-14 13:26:01,819 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.80%       93.30%       92.68%
+building           73.16%       71.25%       69.14%
+---------------------------------------------------
+mIoU               83.48%       82.27%       80.91%
+---------------------------------------------------
+2026-04-14 13:26:01,821 - mmseg - INFO - Iter [23400/26000]	lr: 1.000e-05, eta: 0:53:54, time: 1.205, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8348, val/mIoU_iter: 0.8227, val/mIoU_pseudo: 0.8091, loss_ce: 0.0214, acc_seg: 99.1049, aux.loss_ce: 0.0197, aux.acc_seg: 97.8388, loss: 0.0411
+2026-04-14 13:27:00,661 - mmseg - INFO - Iter [23450/26000]	lr: 9.812e-06, eta: 0:52:59, time: 2.441, data_time: 1.266, memory: 38765, loss_ce: 0.0233, acc_seg: 99.0180, aux.loss_ce: 0.0211, aux.acc_seg: 97.6696, loss: 0.0444
+2026-04-14 13:27:59,802 - mmseg - INFO - Iter [23500/26000]	lr: 9.619e-06, eta: 0:51:56, time: 1.183, data_time: 0.002, memory: 38765, loss_ce: 0.0222, acc_seg: 99.0711, aux.loss_ce: 0.0200, aux.acc_seg: 97.8043, loss: 0.0421
+2026-04-14 13:28:59,437 - mmseg - INFO - Iter [23550/26000]	lr: 9.427e-06, eta: 0:50:53, time: 1.193, data_time: 0.002, memory: 38765, loss_ce: 0.0237, acc_seg: 99.0049, aux.loss_ce: 0.0208, aux.acc_seg: 97.7120, loss: 0.0445
+2026-04-14 13:29:59,755 - mmseg - INFO - Iter [23600/26000]	lr: 9.235e-06, eta: 0:49:51, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0223, acc_seg: 99.0640, aux.loss_ce: 0.0203, aux.acc_seg: 97.7729, loss: 0.0426
+2026-04-14 13:30:59,995 - mmseg - INFO - Iter [23650/26000]	lr: 9.042e-06, eta: 0:48:48, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0235, acc_seg: 99.0110, aux.loss_ce: 0.0205, aux.acc_seg: 97.7478, loss: 0.0439
+2026-04-14 13:32:00,003 - mmseg - INFO - Iter [23700/26000]	lr: 8.850e-06, eta: 0:47:46, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0216, acc_seg: 99.0974, aux.loss_ce: 0.0195, aux.acc_seg: 97.8596, loss: 0.0411
+2026-04-14 13:33:00,039 - mmseg - INFO - Iter [23750/26000]	lr: 8.658e-06, eta: 0:46:43, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0218, acc_seg: 99.0859, aux.loss_ce: 0.0201, aux.acc_seg: 97.7897, loss: 0.0419
+2026-04-14 13:34:00,333 - mmseg - INFO - Iter [23800/26000]	lr: 8.465e-06, eta: 0:45:41, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1329, aux.loss_ce: 0.0188, aux.acc_seg: 97.9444, loss: 0.0396
+2026-04-14 13:35:00,620 - mmseg - INFO - Iter [23850/26000]	lr: 8.273e-06, eta: 0:44:38, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0206, acc_seg: 99.1391, aux.loss_ce: 0.0187, aux.acc_seg: 97.9571, loss: 0.0393
+2026-04-14 13:36:00,578 - mmseg - INFO - Iter [23900/26000]	lr: 8.081e-06, eta: 0:43:36, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0214, acc_seg: 99.1047, aux.loss_ce: 0.0197, aux.acc_seg: 97.8492, loss: 0.0411
+2026-04-14 13:37:00,498 - mmseg - INFO - Iter [23950/26000]	lr: 7.888e-06, eta: 0:42:33, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1075, aux.loss_ce: 0.0194, aux.acc_seg: 97.8739, loss: 0.0406
+2026-04-14 13:38:00,448 - mmseg - INFO - Iter [24000/26000]	lr: 7.696e-06, eta: 0:41:31, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0206, acc_seg: 99.1382, aux.loss_ce: 0.0191, aux.acc_seg: 97.9086, loss: 0.0397
+2026-04-14 13:39:00,595 - mmseg - INFO - Iter [24050/26000]	lr: 7.504e-06, eta: 0:40:28, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0204, acc_seg: 99.1451, aux.loss_ce: 0.0189, aux.acc_seg: 97.9289, loss: 0.0393
+2026-04-14 13:40:00,731 - mmseg - INFO - Iter [24100/26000]	lr: 7.312e-06, eta: 0:39:26, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0206, acc_seg: 99.1384, aux.loss_ce: 0.0190, aux.acc_seg: 97.9228, loss: 0.0395
+2026-04-14 13:41:00,931 - mmseg - INFO - Iter [24150/26000]	lr: 7.119e-06, eta: 0:38:23, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0229, acc_seg: 99.0375, aux.loss_ce: 0.0200, aux.acc_seg: 97.8040, loss: 0.0429
+2026-04-14 13:42:00,909 - mmseg - INFO - Iter [24200/26000]	lr: 6.927e-06, eta: 0:37:21, time: 1.200, data_time: 0.002, memory: 38765, loss_ce: 0.0196, acc_seg: 99.1831, aux.loss_ce: 0.0182, aux.acc_seg: 98.0168, loss: 0.0378
+2026-04-14 13:43:00,671 - mmseg - INFO - Iter [24250/26000]	lr: 6.735e-06, eta: 0:36:19, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0210, acc_seg: 99.1190, aux.loss_ce: 0.0191, aux.acc_seg: 97.9091, loss: 0.0401
+2026-04-14 13:44:00,726 - mmseg - INFO - Iter [24300/26000]	lr: 6.542e-06, eta: 0:35:16, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0230, acc_seg: 99.0359, aux.loss_ce: 0.0210, aux.acc_seg: 97.6938, loss: 0.0440
+2026-04-14 13:45:00,999 - mmseg - INFO - Iter [24350/26000]	lr: 6.350e-06, eta: 0:34:14, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0204, acc_seg: 99.1471, aux.loss_ce: 0.0181, aux.acc_seg: 98.0217, loss: 0.0385
+2026-04-14 13:46:00,842 - mmseg - INFO - Iter [24400/26000]	lr: 6.158e-06, eta: 0:33:11, time: 1.197, data_time: 0.002, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1098, aux.loss_ce: 0.0184, aux.acc_seg: 97.9754, loss: 0.0397
+2026-04-14 13:47:01,398 - mmseg - INFO - Iter [24450/26000]	lr: 5.965e-06, eta: 0:32:09, time: 1.211, data_time: 0.002, memory: 38765, loss_ce: 0.0237, acc_seg: 98.9985, aux.loss_ce: 0.0210, aux.acc_seg: 97.6788, loss: 0.0448
+2026-04-14 13:48:01,777 - mmseg - INFO - Iter [24500/26000]	lr: 5.773e-06, eta: 0:31:07, time: 1.208, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0589, aux.loss_ce: 0.0203, aux.acc_seg: 97.7796, loss: 0.0428
+2026-04-14 13:49:07,031 - mmseg - INFO - Iter [24550/26000]	lr: 5.581e-06, eta: 0:30:05, time: 1.305, data_time: 0.104, memory: 38765, loss_ce: 0.0234, acc_seg: 99.0104, aux.loss_ce: 0.0206, aux.acc_seg: 97.7219, loss: 0.0441
+2026-04-14 13:50:06,804 - mmseg - INFO - Iter [24600/26000]	lr: 5.388e-06, eta: 0:29:02, time: 1.195, data_time: 0.002, memory: 38765, loss_ce: 0.0206, acc_seg: 99.1395, aux.loss_ce: 0.0193, aux.acc_seg: 97.8740, loss: 0.0399
+2026-04-14 13:51:06,081 - mmseg - INFO - Iter [24650/26000]	lr: 5.196e-06, eta: 0:28:00, time: 1.186, data_time: 0.002, memory: 38765, loss_ce: 0.0223, acc_seg: 99.0630, aux.loss_ce: 0.0202, aux.acc_seg: 97.7735, loss: 0.0424
+2026-04-14 13:52:05,574 - mmseg - INFO - 
+--- Dual evaluation at iter 24700 ---
+2026-04-14 13:53:08,546 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.77%       93.30%       92.68%
+building           73.42%       71.58%       69.14%
+---------------------------------------------------
+mIoU               83.60%       82.44%       80.91%
+---------------------------------------------------
+2026-04-14 13:53:08,547 - mmseg - INFO - Iter [24700/26000]	lr: 5.004e-06, eta: 0:26:57, time: 1.190, data_time: 0.003, memory: 38765, val/mIoU_single: 0.8360, val/mIoU_iter: 0.8244, val/mIoU_pseudo: 0.8091, loss_ce: 0.0210, acc_seg: 99.1234, aux.loss_ce: 0.0191, aux.acc_seg: 97.9143, loss: 0.0401
+2026-04-14 13:54:08,423 - mmseg - INFO - Iter [24750/26000]	lr: 4.812e-06, eta: 0:25:58, time: 2.457, data_time: 1.261, memory: 38765, loss_ce: 0.0203, acc_seg: 99.1525, aux.loss_ce: 0.0188, aux.acc_seg: 97.9500, loss: 0.0391
+2026-04-14 13:55:07,960 - mmseg - INFO - Iter [24800/26000]	lr: 4.619e-06, eta: 0:24:56, time: 1.191, data_time: 0.002, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1263, aux.loss_ce: 0.0193, aux.acc_seg: 97.8779, loss: 0.0401
+2026-04-14 13:56:08,047 - mmseg - INFO - Iter [24850/26000]	lr: 4.427e-06, eta: 0:23:53, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0227, acc_seg: 99.0462, aux.loss_ce: 0.0203, aux.acc_seg: 97.7637, loss: 0.0430
+2026-04-14 13:57:08,093 - mmseg - INFO - Iter [24900/26000]	lr: 4.235e-06, eta: 0:22:51, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0199, acc_seg: 99.1691, aux.loss_ce: 0.0188, aux.acc_seg: 97.9282, loss: 0.0387
+2026-04-14 13:58:08,121 - mmseg - INFO - Iter [24950/26000]	lr: 4.042e-06, eta: 0:21:48, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0203, acc_seg: 99.1508, aux.loss_ce: 0.0189, aux.acc_seg: 97.9256, loss: 0.0392
+2026-04-14 13:59:08,003 - mmseg - INFO - Iter [25000/26000]	lr: 3.850e-06, eta: 0:20:46, time: 1.198, data_time: 0.002, memory: 38765, loss_ce: 0.0212, acc_seg: 99.1165, aux.loss_ce: 0.0198, aux.acc_seg: 97.8338, loss: 0.0410
+2026-04-14 14:00:07,495 - mmseg - INFO - Iter [25050/26000]	lr: 3.658e-06, eta: 0:19:44, time: 1.190, data_time: 0.002, memory: 38765, loss_ce: 0.0220, acc_seg: 99.0702, aux.loss_ce: 0.0194, aux.acc_seg: 97.8523, loss: 0.0414
+2026-04-14 14:01:07,557 - mmseg - INFO - Iter [25100/26000]	lr: 3.465e-06, eta: 0:18:41, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0227, acc_seg: 99.0518, aux.loss_ce: 0.0204, aux.acc_seg: 97.7748, loss: 0.0431
+2026-04-14 14:02:07,806 - mmseg - INFO - Iter [25150/26000]	lr: 3.273e-06, eta: 0:17:39, time: 1.205, data_time: 0.002, memory: 38765, loss_ce: 0.0199, acc_seg: 99.1732, aux.loss_ce: 0.0188, aux.acc_seg: 97.9539, loss: 0.0386
+2026-04-14 14:03:07,623 - mmseg - INFO - Iter [25200/26000]	lr: 3.081e-06, eta: 0:16:36, time: 1.196, data_time: 0.002, memory: 38765, loss_ce: 0.0217, acc_seg: 99.0909, aux.loss_ce: 0.0200, aux.acc_seg: 97.8071, loss: 0.0417
+2026-04-14 14:04:06,949 - mmseg - INFO - Iter [25250/26000]	lr: 2.888e-06, eta: 0:15:34, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0202, acc_seg: 99.1527, aux.loss_ce: 0.0193, aux.acc_seg: 97.8869, loss: 0.0395
+2026-04-14 14:05:06,974 - mmseg - INFO - Iter [25300/26000]	lr: 2.696e-06, eta: 0:14:32, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1309, aux.loss_ce: 0.0195, aux.acc_seg: 97.8686, loss: 0.0402
+2026-04-14 14:06:06,687 - mmseg - INFO - Iter [25350/26000]	lr: 2.504e-06, eta: 0:13:29, time: 1.194, data_time: 0.002, memory: 38765, loss_ce: 0.0227, acc_seg: 99.0436, aux.loss_ce: 0.0202, aux.acc_seg: 97.7864, loss: 0.0429
+2026-04-14 14:07:06,055 - mmseg - INFO - Iter [25400/26000]	lr: 2.312e-06, eta: 0:12:27, time: 1.187, data_time: 0.002, memory: 38765, loss_ce: 0.0200, acc_seg: 99.1660, aux.loss_ce: 0.0188, aux.acc_seg: 97.9404, loss: 0.0388
+2026-04-14 14:08:06,132 - mmseg - INFO - Iter [25450/26000]	lr: 2.119e-06, eta: 0:11:25, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0183, acc_seg: 99.2347, aux.loss_ce: 0.0173, aux.acc_seg: 98.0912, loss: 0.0356
+2026-04-14 14:09:06,247 - mmseg - INFO - Iter [25500/26000]	lr: 1.927e-06, eta: 0:10:22, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0217, acc_seg: 99.0954, aux.loss_ce: 0.0197, aux.acc_seg: 97.8499, loss: 0.0413
+2026-04-14 14:10:06,207 - mmseg - INFO - Iter [25550/26000]	lr: 1.735e-06, eta: 0:09:20, time: 1.199, data_time: 0.002, memory: 38765, loss_ce: 0.0211, acc_seg: 99.1188, aux.loss_ce: 0.0191, aux.acc_seg: 97.9077, loss: 0.0402
+2026-04-14 14:11:06,519 - mmseg - INFO - Iter [25600/26000]	lr: 1.542e-06, eta: 0:08:18, time: 1.206, data_time: 0.002, memory: 38765, loss_ce: 0.0215, acc_seg: 99.0941, aux.loss_ce: 0.0197, aux.acc_seg: 97.8191, loss: 0.0412
+2026-04-14 14:12:06,720 - mmseg - INFO - Iter [25650/26000]	lr: 1.350e-06, eta: 0:07:15, time: 1.204, data_time: 0.002, memory: 38765, loss_ce: 0.0234, acc_seg: 99.0080, aux.loss_ce: 0.0207, aux.acc_seg: 97.7041, loss: 0.0441
+2026-04-14 14:13:06,833 - mmseg - INFO - Iter [25700/26000]	lr: 1.158e-06, eta: 0:06:13, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0225, acc_seg: 99.0566, aux.loss_ce: 0.0199, aux.acc_seg: 97.8121, loss: 0.0424
+2026-04-14 14:14:06,971 - mmseg - INFO - Iter [25750/26000]	lr: 9.654e-07, eta: 0:05:11, time: 1.203, data_time: 0.002, memory: 38765, loss_ce: 0.0218, acc_seg: 99.0865, aux.loss_ce: 0.0197, aux.acc_seg: 97.8537, loss: 0.0415
+2026-04-14 14:15:07,050 - mmseg - INFO - Iter [25800/26000]	lr: 7.731e-07, eta: 0:04:09, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0202, acc_seg: 99.1504, aux.loss_ce: 0.0183, aux.acc_seg: 97.9928, loss: 0.0385
+2026-04-14 14:16:10,438 - mmseg - INFO - Iter [25850/26000]	lr: 5.808e-07, eta: 0:03:06, time: 1.268, data_time: 0.069, memory: 38765, loss_ce: 0.0216, acc_seg: 99.0955, aux.loss_ce: 0.0196, aux.acc_seg: 97.8485, loss: 0.0412
+2026-04-14 14:17:10,465 - mmseg - INFO - Iter [25900/26000]	lr: 3.885e-07, eta: 0:02:04, time: 1.201, data_time: 0.002, memory: 38765, loss_ce: 0.0208, acc_seg: 99.1313, aux.loss_ce: 0.0195, aux.acc_seg: 97.8719, loss: 0.0403
+2026-04-14 14:18:10,560 - mmseg - INFO - Iter [25950/26000]	lr: 1.962e-07, eta: 0:01:02, time: 1.202, data_time: 0.002, memory: 38765, loss_ce: 0.0217, acc_seg: 99.0900, aux.loss_ce: 0.0204, aux.acc_seg: 97.7575, loss: 0.0420
+2026-04-14 14:19:10,378 - mmseg - INFO - Saving checkpoint at 26000 iterations
+2026-04-14 14:19:12,564 - mmseg - INFO - 
+--- Dual evaluation at iter 26000 ---
+2026-04-14 14:20:17,130 - mmseg - INFO - 
+---------------------------------------------------
+Class          Single IoU     Iter IoU   Pseudo IoU
+---------------------------------------------------
+background         93.80%       93.29%       92.68%
+building           73.43%       71.43%       69.14%
+---------------------------------------------------
+mIoU               83.62%       82.36%       80.91%
+---------------------------------------------------
+2026-04-14 14:20:17,131 - mmseg - INFO - Iter [26000/26000]	lr: 3.846e-09, eta: 0:00:00, time: 1.240, data_time: 0.002, memory: 38765, val/mIoU_single: 0.8362, val/mIoU_iter: 0.8236, val/mIoU_pseudo: 0.8091, loss_ce: 0.0198, acc_seg: 99.1718, aux.loss_ce: 0.0180, aux.acc_seg: 98.0261, loss: 0.0378
