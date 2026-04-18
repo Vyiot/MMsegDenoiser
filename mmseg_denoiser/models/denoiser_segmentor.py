@@ -6,6 +6,7 @@ The backbone's first convolution is adapted to accept (3 + num_classes)
 input channels.
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 from collections import OrderedDict
@@ -54,10 +55,21 @@ class DenoiserSegmentor(BaseSegmentor):
                  test_cfg: Optional[dict] = None,
                  pretrained: Optional[str] = None,
                  init_cfg: Optional[dict] = None,
-                 adapt_input_conv: bool = True):
+                 adapt_input_conv: bool = True,
+                 diffusion_cfg: Optional[dict] = None):
         super().__init__(init_cfg=init_cfg)
         self.num_classes = num_classes
         self.in_channels = 3 + num_classes  # RGB + one-hot pseudo-label
+
+        # Diffusion schedule (optional)
+        if diffusion_cfg is not None:
+            betas = diffusion_cfg['betas']
+            self.betas_cumprod = np.linspace(
+                betas['start'], betas['stop'], betas['num_timesteps'])
+            self.num_timesteps = len(self.betas_cumprod)
+        else:
+            self.betas_cumprod = None
+            self.num_timesteps = 0
 
         # Build backbone
         if pretrained is not None:
@@ -162,18 +174,20 @@ class DenoiserSegmentor(BaseSegmentor):
         return x
 
     def encode_decode(self, img: torch.Tensor,
-                      img_metas: List[dict]) -> torch.Tensor:
+                      img_metas: List[dict],
+                      timesteps=None) -> torch.Tensor:
         """Encode-decode for inference.
 
         Args:
             img (Tensor): Combined input (B, 3+num_classes, H, W).
             img_metas (list[dict]): Image meta information.
+            timesteps (Tensor, optional): (B,) integer timesteps.
 
         Returns:
             Tensor: Segmentation logits.
         """
         x = self.extract_feat(img)
-        out = self._decode_head_forward_test(x, img_metas)
+        out = self._decode_head_forward_test(x, img_metas, timesteps)
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -181,17 +195,27 @@ class DenoiserSegmentor(BaseSegmentor):
             align_corners=self.align_corners)
         return out
 
-    def _decode_head_forward_train(self, x, img_metas, gt_semantic_seg):
+    def _decode_head_forward_train(self, x, img_metas, gt_semantic_seg,
+                                    timesteps=None):
         """Run decode head forward in training mode."""
         losses = dict()
-        loss_decode = self.decode_head.forward_train(
-            x, img_metas, gt_semantic_seg, self.train_cfg)
-        losses.update(loss_decode)
+        if timesteps is not None and getattr(self.decode_head, 'use_time_embd', False):
+            # Call forward() directly to pass timesteps
+            seg_logits = self.decode_head.forward(x, timesteps=timesteps)
+            loss_decode = self.decode_head.losses(seg_logits, gt_semantic_seg)
+            losses.update(loss_decode)
+        else:
+            loss_decode = self.decode_head.forward_train(
+                x, img_metas, gt_semantic_seg, self.train_cfg)
+            losses.update(loss_decode)
         return losses
 
-    def _decode_head_forward_test(self, x, img_metas):
+    def _decode_head_forward_test(self, x, img_metas, timesteps=None):
         """Run decode head forward in testing mode."""
-        seg_logits = self.decode_head.forward_test(x, img_metas, self.test_cfg)
+        if timesteps is not None and getattr(self.decode_head, 'use_time_embd', False):
+            seg_logits = self.decode_head.forward(x, timesteps=timesteps)
+        else:
+            seg_logits = self.decode_head.forward_test(x, img_metas, self.test_cfg)
         return seg_logits
 
     def _auxiliary_head_forward_train(self, x, img_metas, gt_semantic_seg):
@@ -216,15 +240,17 @@ class DenoiserSegmentor(BaseSegmentor):
             img (Tensor): Combined input (B, 3+num_classes, H, W).
             img_metas (list[dict]): Image meta information.
             gt_semantic_seg (Tensor): Clean ground-truth labels (B, 1, H, W).
+            **kwargs: May contain 'timesteps' (B,) tensor.
 
         Returns:
             dict[str, Tensor]: Loss dictionary.
         """
+        timesteps = kwargs.get('timesteps', None)
         x = self.extract_feat(img)
         losses = dict()
 
         loss_decode = self._decode_head_forward_train(
-            x, img_metas, gt_semantic_seg)
+            x, img_metas, gt_semantic_seg, timesteps)
         losses.update(loss_decode)
 
         if hasattr(self, 'auxiliary_head') and self.auxiliary_head is not None:
@@ -246,7 +272,8 @@ class DenoiserSegmentor(BaseSegmentor):
         """Simple test with single scale."""
         if img.dim() == 3:
             img = img.unsqueeze(0)
-        seg_logit = self.encode_decode(img, img_meta)
+        timesteps = kwargs.get('timesteps', None)
+        seg_logit = self.encode_decode(img, img_meta, timesteps)
         if rescale:
             seg_logit = resize(
                 input=seg_logit,
@@ -266,3 +293,90 @@ class DenoiserSegmentor(BaseSegmentor):
         if img.dim() == 3:
             img = img.unsqueeze(0)
         return self.simple_test(img, img_metas[0], rescale, **kwargs)
+
+    # =========== Diffusion helpers ===========
+
+    def q_sample(self, x0_onehot, pseudo_onehot, t, device):
+        """Re-noise x0 prediction back to x_t.
+
+        Uses random transition map: each pixel independently keeps x0
+        with probability betas_cumprod[t], otherwise keeps pseudo.
+
+        Args:
+            x0_onehot (Tensor): Predicted clean mask one-hot (B, C, H, W).
+            pseudo_onehot (Tensor): Original pseudo-label one-hot (B, C, H, W).
+            t (int): Target timestep to re-noise to.
+            device: torch device.
+
+        Returns:
+            Tensor: Re-noised mask one-hot (B, C, H, W).
+        """
+        q_prob = torch.tensor(
+            self.betas_cumprod[t], device=device, dtype=torch.float32)
+        # Random transition map: 1 = keep x0, 0 = keep pseudo
+        noise = torch.rand(x0_onehot.shape[0], 1,
+                           x0_onehot.shape[2], x0_onehot.shape[3],
+                           device=device)
+        transition = (noise < q_prob).float()
+        return transition * x0_onehot + (1 - transition) * pseudo_onehot
+
+    def diffusion_test(self, img, img_meta, rescale=True):
+        """Dual validation: single-step + iterative.
+
+        Returns list of tuples: (seg_pred_np, mode_str)
+        where mode_str is 'single' or 'iterative'.
+        """
+        if img.dim() == 3:
+            img = img.unsqueeze(0)
+
+        device = img.device
+        B = img.shape[0]
+        ori_shape = img_meta[0]['ori_shape'][:2]
+
+        # Split input: image (0:3) and pseudo one-hot (3:)
+        image = img[:, :3]
+        pseudo_onehot = img[:, 3:]
+
+        T = self.num_timesteps  # e.g. 6
+
+        # --- Single-step: pseudo(t=T-1) → x0 ---
+        t_single = torch.tensor([T - 1] * B, device=device)
+        seg_logit = self.encode_decode(img, img_meta, timesteps=t_single)
+        if rescale:
+            seg_logit = resize(
+                input=seg_logit, size=ori_shape,
+                mode='bilinear', align_corners=self.align_corners,
+                warning=False)
+        seg_single = seg_logit.argmax(dim=1).cpu().numpy()
+
+        # --- Iterative: x_{T-1} → x0 → re-noise(T-2) → x0 → ... → x0 ---
+        current_onehot = pseudo_onehot  # start with pseudo as x_T
+        for step_t in range(T - 1, -1, -1):  # T-1, T-2, ..., 0
+            t_iter = torch.tensor([step_t] * B, device=device)
+            combined = torch.cat([image, current_onehot], dim=1)
+            seg_logit = self.encode_decode(combined, img_meta, timesteps=t_iter)
+
+            if step_t == 0:
+                # Final step: output prediction
+                if rescale:
+                    seg_logit = resize(
+                        input=seg_logit, size=ori_shape,
+                        mode='bilinear', align_corners=self.align_corners,
+                        warning=False)
+                seg_iter = seg_logit.argmax(dim=1).cpu().numpy()
+            else:
+                # Intermediate: predict x0 one-hot, re-noise to x_{t-1}
+                x0_pred = seg_logit.argmax(dim=1)  # (B, H, W)
+                # Convert to one-hot
+                x0_onehot = torch.zeros_like(current_onehot)
+                for c in range(self.num_classes):
+                    x0_onehot[:, c] = (x0_pred == c).float()
+                # Re-noise to t-1
+                current_onehot = self.q_sample(
+                    x0_onehot, pseudo_onehot, step_t - 1, device)
+
+        results = []
+        for i in range(B):
+            results.append((seg_single[i], 'single'))
+            results.append((seg_iter[i], 'iterative'))
+        return results

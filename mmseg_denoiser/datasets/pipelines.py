@@ -155,6 +155,11 @@ class FormatDenoiseBundle:
             results['pseudo_label_indices'] = torch.from_numpy(
                 results['pseudo_label']).long().contiguous()
 
+        # Format timestep as tensor (for diffusion mode)
+        if 'timestep' in results:
+            results['timesteps'] = torch.tensor(
+                results['timestep'], dtype=torch.long)
+
         # Collect meta information
         img_meta = {}
         for key in ['img_info', 'ori_shape', 'img_shape', 'pad_shape',

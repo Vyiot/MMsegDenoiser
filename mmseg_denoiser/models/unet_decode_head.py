@@ -66,11 +66,13 @@ class UpBlock(nn.Module):
         self.conv2 = ConvBnReLU(out_channels, out_channels)
         self.dropout = nn.Dropout2d(dropout_ratio) if dropout_ratio > 0 else nn.Identity()
 
-    def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, skip: torch.Tensor,
+                time_emb: torch.Tensor = None) -> torch.Tensor:
         """
         Args:
             x (Tensor): Feature from deeper level (B, C_deep, H, W).
             skip (Tensor): Encoder skip feature (B, C_skip, 2H, 2W).
+            time_emb (Tensor, optional): Projected time embedding (B, C_out).
 
         Returns:
             Tensor: Refined feature (B, C_out, 2H, 2W).
@@ -81,6 +83,9 @@ class UpBlock(nn.Module):
         # Concatenate along channel dimension (skip connection)
         x = torch.cat([x, skip], dim=1)
         x = self.conv1(x)
+        # Inject time embedding between conv1 and conv2
+        if time_emb is not None:
+            x = x + time_emb[:, :, None, None]
         x = self.conv2(x)
         x = self.dropout(x)
         return x
@@ -122,6 +127,8 @@ class UNetDecodeHead(BaseDecodeHead):
                  channels: int = 256,
                  bottleneck_channels: Optional[int] = None,
                  dropout_ratio: float = 0.1,
+                 use_time_embd: bool = False,
+                 num_timesteps: int = 6,
                  **kwargs):
         # BaseDecodeHead expects scalar in_channels; we pass the shallowest
         # level since the final output comes from that level.
@@ -158,12 +165,30 @@ class UNetDecodeHead(BaseDecodeHead):
         # Override the cls_seg from BaseDecodeHead to match final channels
         self.conv_seg = nn.Conv2d(channels, self.num_classes, kernel_size=1)
 
-    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        # --- Time embedding (optional, no backbone changes) ---
+        self.use_time_embd = use_time_embd
+        if use_time_embd:
+            time_embed_dim = channels * 4  # 1024
+            self.time_embed = nn.Embedding(num_timesteps, time_embed_dim)
+            # Project to each decoder level's channel dim
+            self.time_proj_bneck = nn.Sequential(
+                nn.Linear(time_embed_dim, bneck_ch), nn.SiLU())
+            self.time_proj_up3 = nn.Sequential(
+                nn.Linear(time_embed_dim, channels * 4), nn.SiLU())
+            self.time_proj_up2 = nn.Sequential(
+                nn.Linear(time_embed_dim, channels * 2), nn.SiLU())
+            self.time_proj_up1 = nn.Sequential(
+                nn.Linear(time_embed_dim, channels), nn.SiLU())
+
+    def forward(self, inputs: List[torch.Tensor],
+                timesteps: torch.Tensor = None) -> torch.Tensor:
         """Decode with skip connections.
 
         Args:
             inputs (list[Tensor]): Encoder features [F1, F2, F3, F4]
                 from shallowest (1/4) to deepest (1/32).
+            timesteps (Tensor, optional): (B,) integer timesteps for
+                diffusion conditioning. Only used when use_time_embd=True.
 
         Returns:
             Tensor: Segmentation logits (B, num_classes, H/4, W/4).
@@ -171,13 +196,24 @@ class UNetDecodeHead(BaseDecodeHead):
         inputs = self._transform_inputs(inputs)
         f1, f2, f3, f4 = inputs[0], inputs[1], inputs[2], inputs[3]
 
+        # Compute time embeddings if enabled
+        t_bneck = t_up3 = t_up2 = t_up1 = None
+        if self.use_time_embd and timesteps is not None:
+            t_emb = self.time_embed(timesteps)       # (B, 1024)
+            t_bneck = self.time_proj_bneck(t_emb)    # (B, bneck_ch)
+            t_up3 = self.time_proj_up3(t_emb)        # (B, channels*4)
+            t_up2 = self.time_proj_up2(t_emb)        # (B, channels*2)
+            t_up1 = self.time_proj_up1(t_emb)        # (B, channels)
+
         # Bottleneck on deepest features
         x = self.bottleneck(f4)
+        if t_bneck is not None:
+            x = x + t_bneck[:, :, None, None]
 
-        # Progressive upsampling with skip connections
-        x = self.up3(x, f3)   # 1/32 → 1/16, fuse with F3
-        x = self.up2(x, f2)   # 1/16 → 1/8,  fuse with F2
-        x = self.up1(x, f1)   # 1/8  → 1/4,  fuse with F1
+        # Progressive upsampling with skip connections + time injection
+        x = self.up3(x, f3, t_up3)   # 1/32 → 1/16, fuse with F3
+        x = self.up2(x, f2, t_up2)   # 1/16 → 1/8,  fuse with F2
+        x = self.up1(x, f1, t_up1)   # 1/8  → 1/4,  fuse with F1
 
         # Classification
         out = self.conv_seg(x)

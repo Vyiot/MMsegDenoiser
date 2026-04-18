@@ -240,7 +240,7 @@ lr_config = dict(
     by_epoch=False)
 runner = dict(type='IterBasedRunner', max_iters=40000)
 checkpoint_config = dict(by_epoch=False, interval=4000)
-evaluation = dict(interval=4000, metric='mIoU', pre_eval=True)
+evaluation = dict(interval=100, metric='mIoU', pre_eval=True)
 device = 'cuda'
 work_dir = './work_dirs/deeplabv3plus_r101_512x512_40k_denoise_skipconn'
 gpu_ids = range(0, 1)

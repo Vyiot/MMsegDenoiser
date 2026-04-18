@@ -36,3 +36,10 @@ checkpoints/
 # OS
 .DS_Store
 Thumbs.db
+# Model weights & checkpoints
+*.pth
+*.ckpt
+*.pt
+
+# Large log files (optional, nếu muốn loại luôn)
+# work_dirs/

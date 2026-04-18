@@ -16,6 +16,7 @@ import argparse
 import copy
 import os
 import os.path as osp
+import warnings
 
 # Suppress OpenCV GeoTIFF metadata warnings (harmless unknown tag warnings)
 os.environ.setdefault('OPENCV_LOG_LEVEL', 'ERROR')
@@ -24,13 +25,16 @@ import time
 
 import mmcv
 import torch
-from mmcv.runner import init_dist
+from mmcv.runner import init_dist, build_runner
 from mmcv.utils import Config, DictAction, get_git_hash
 from mmseg import __version__
-from mmseg.apis import set_random_seed, train_segmentor
-from mmseg.datasets import build_dataset
+from mmseg.apis import set_random_seed
+from mmseg.core import DistEvalHook, EvalHook
+from mmseg.datasets import build_dataset, build_dataloader
 from mmseg.models import build_segmentor
 from mmseg.utils import collect_env, get_root_logger
+from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
+from mmcv.runner import build_optimizer
 
 # Register custom modules
 sys.path.insert(0, osp.join(osp.dirname(__file__), '..'))
@@ -140,18 +144,91 @@ def main():
     model.CLASSES = datasets[0].CLASSES if hasattr(datasets[0], 'CLASSES') else None
     model.PALETTE = datasets[0].PALETTE if hasattr(datasets[0], 'PALETTE') else None
 
-    # Train
-    train_segmentor(
-        model,
-        datasets,
-        cfg,
-        distributed=distributed,
-        validate=(not args.no_validate),
-        timestamp=timestamp,
-        meta=dict(
-            env_info=env_info,
-            seed=seed,
-            config=cfg.pretty_text))
+    # Build data loaders
+    data_loaders = [
+        build_dataloader(
+            ds,
+            cfg.data.samples_per_gpu,
+            cfg.data.workers_per_gpu,
+            len(cfg.gpu_ids),
+            dist=distributed,
+            seed=cfg.seed,
+            drop_last=True) for ds in datasets
+    ]
+
+    # Put model on GPU
+    if distributed:
+        find_unused_parameters = cfg.get('find_unused_parameters', False)
+        model = MMDistributedDataParallel(
+            model.cuda(),
+            device_ids=[torch.cuda.current_device()],
+            broadcast_buffers=False,
+            find_unused_parameters=find_unused_parameters)
+    else:
+        model = MMDataParallel(
+            model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+
+    # Build runner
+    optimizer = build_optimizer(model, cfg.optimizer)
+
+    if cfg.get('runner') is None:
+        cfg.runner = {'type': 'IterBasedRunner', 'max_iters': cfg.total_iters}
+
+    runner = build_runner(
+        cfg.runner,
+        default_args=dict(
+            model=model,
+            batch_processor=None,
+            optimizer=optimizer,
+            work_dir=cfg.work_dir,
+            logger=logger,
+            meta=dict(env_info=env_info, seed=seed, config=cfg.pretty_text)))
+
+    # Register standard hooks
+    runner.register_training_hooks(cfg.lr_config, cfg.optimizer_config,
+                                   cfg.checkpoint_config, cfg.log_config,
+                                   cfg.get('momentum_config', None))
+
+    runner.timestamp = timestamp
+
+    # Register evaluation hook
+    validate = not args.no_validate
+    if validate:
+        val_dataset = build_dataset(cfg.data.val, dict(test_mode=True))
+        val_dataloader = build_dataloader(
+            val_dataset,
+            samples_per_gpu=1,
+            workers_per_gpu=cfg.data.workers_per_gpu,
+            dist=distributed,
+            shuffle=False)
+
+        if cfg.get('diffusion_eval', None) is not None:
+            # Use custom DiffusionEvalHook for dual validation
+            from mmseg_denoiser.evaluation import DiffusionEvalHook
+            eval_hook = DiffusionEvalHook(
+                dataloader=val_dataloader,
+                **cfg.diffusion_eval)
+            runner.register_hook(eval_hook, priority='LOW')
+            logger.info(
+                f'DiffusionEvalHook registered '
+                f'(interval={cfg.diffusion_eval.interval}, priority=LOW)')
+        else:
+            # Standard mmseg evaluation
+            eval_cfg = cfg.get('evaluation', {})
+            eval_cfg['by_epoch'] = cfg.runner['type'] != 'IterBasedRunner'
+            eval_hook_cls = DistEvalHook if distributed else EvalHook
+            runner.register_hook(
+                eval_hook_cls(val_dataloader, **eval_cfg), priority='LOW')
+            logger.info(f'Standard EvalHook registered (priority=LOW)')
+
+    # Resume or load
+    if cfg.resume_from:
+        runner.resume(cfg.resume_from)
+    elif cfg.load_from:
+        runner.load_checkpoint(cfg.load_from)
+
+    # Run
+    runner.run(data_loaders, cfg.workflow)
 
 
 if __name__ == '__main__':
